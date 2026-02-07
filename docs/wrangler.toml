@@ -1,0 +1,5 @@
+name = "babygrad-tutorial"
+compatibility_date = "2026-02-01"
+
+[assets]
+directory = "./public"

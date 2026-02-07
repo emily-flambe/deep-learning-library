@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 1: The Tensor Class — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Chapter 1: The Tensor Class</h1>
+
+  <h2>What is a Tensor, and why do we need one?</h2>
+
+  <p>A <strong>numpy array</strong> is just data—numbers sitting in memory.</p>
+
+  <p>A <strong>Tensor</strong> is a wrapper around a numpy array that also remembers:</p>
+  <ul>
+    <li>Where did this data come from?</li>
+    <li>What math operation created it?</li>
+    <li>Should we track gradients for backpropagation?</li>
+  </ul>
+
+  <p>Think of it like a package vs. a tracked package. A numpy array is the item. A Tensor is the item plus shipping history.</p>
+
+  <h2>Exercise 1: The <code>__init__</code> method</h2>
+
+  <h3>The Problem</h3>
+
+  <p>Users will create Tensors in different ways:</p>
+
+  <pre><code>Tensor([1, 2, 3])                    # from a Python list
+Tensor(5)                            # from a single number
+Tensor(np.array([1, 2, 3]))          # from a numpy array
+Tensor(some_existing_tensor)         # from another Tensor</code></pre>
+
+  <p>Your job: make all of these work. Internally, <code>self.data</code> should <strong>always</strong> end up as a numpy array.</p>
+
+  <h3>Why?</h3>
+
+  <p>The rest of your library assumes <code>self.data</code> is a numpy array. If it's sometimes a list, sometimes a Tensor, sometimes an array—everything breaks. So <code>__init__</code> normalizes the input.</p>
+
+  <h3>Thinking Through It</h3>
+
+  <p>Ask yourself:</p>
+  <ol>
+    <li>If someone passes a Tensor, how do I get the numpy array out of it?</li>
+    <li>If someone passes a numpy array, what do I need to do? (Trick question—maybe nothing?)</li>
+    <li>If someone passes a list or number, how do I convert it to a numpy array?</li>
+  </ol>
+
+  <h3>Starter Code</h3>
+
+  <pre><code>import numpy as np
+
+class Tensor:
+    def __init__(self, data, *, device=None, dtype="float32", requires_grad=True):
+
+        # Step 1: Convert 'data' to a numpy array, regardless of what was passed in
+        # YOUR CODE HERE (hint: use isinstance() to check types)
+
+        # Step 2: Store it with the correct dtype
+        self.data = _____.astype(dtype)
+
+        # Step 3: Initialize the other attributes
+        self.requires_grad = requires_grad
+        self.grad = None              # No gradient yet
+        self._device = device or "cpu"
+        self._op = None               # No operation created this (it's a leaf)
+        self._inputs = []             # No input tensors (it's a leaf)</code></pre>
+
+  <div class="hint">
+    <strong>Hints</strong>
+    <ul>
+      <li><code>isinstance(x, SomeType)</code> returns True/False</li>
+      <li><code>np.array([1, 2, 3])</code> converts a list to a numpy array</li>
+      <li>If <code>t</code> is a Tensor, then <code>t.data</code> is its numpy array</li>
+    </ul>
+  </div>
+
+  <h2>Exercise 2: Properties</h2>
+
+  <p>These are one-liners. They just expose information about <code>self.data</code>.</p>
+
+  <pre><code>@property
+def shape(self):
+    # Return the dimensions, like (3,) or (2, 4)
+
+@property
+def ndim(self):
+    # Return how many dimensions (1 for a vector, 2 for a matrix, etc.)
+
+@property
+def size(self):
+    # Return total number of elements</code></pre>
+
+  <div class="hint">
+    <strong>Hint:</strong> numpy arrays already have <code>.shape</code>, <code>.ndim</code>, <code>.size</code>
+  </div>
+
+  <h2>Exercise 3: <code>numpy()</code> and <code>detach()</code></h2>
+
+  <h3>numpy()</h3>
+
+  <p>Returns a plain numpy array, disconnected from the Tensor.</p>
+
+  <pre><code>t = Tensor([1, 2, 3])
+arr = t.numpy()  # Just the raw numbers, no Tensor wrapper</code></pre>
+
+  <p>Why return a <strong>copy</strong>? So that modifying <code>arr</code> doesn't accidentally change <code>t.data</code>.</p>
+
+  <h3>detach()</h3>
+
+  <p>Returns a new Tensor with the same data, but <code>requires_grad=False</code>.</p>
+
+  <pre><code>t = Tensor([1, 2, 3], requires_grad=True)
+t2 = t.detach()  # Same numbers, but won't track gradients</code></pre>
+
+  <p>Why? Sometimes you want to use a tensor's values without including it in the computation graph.</p>
+
+  <h2>What are <code>_op</code> and <code>_inputs</code> for?</h2>
+
+  <p>You won't use these yet, but here's the idea:</p>
+
+  <pre><code>a = Tensor([1, 2])
+b = Tensor([3, 4])
+c = a + b  # c.data = [4, 6]</code></pre>
+
+  <p>When you implement addition later:</p>
+  <ul>
+    <li><code>c._op</code> will be <code>"add"</code> (or some operation object)</li>
+    <li><code>c._inputs</code> will be <code>[a, b]</code></li>
+  </ul>
+
+  <p>This is how the tensor "remembers its history" for backpropagation. For now, just initialize them as <code>None</code> and <code>[]</code>.</p>
+
+  <div class="nav">
+    <a href="index.html">← Home</a>
+    <span></span>
+  </div>
+
+  <hr style="margin-top: 3rem;">
+  <p style="font-size: 0.85rem; color: #666;">
+    This tutorial is a rewrite of <a href="https://zekcrates.quarto.pub/deep-learning-library/">zekcrates' Deep Learning Library</a>, reorganized for clarity.
+  </p>
+
+</body>
+</html>

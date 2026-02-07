@@ -1,74 +1,44 @@
 import numpy as np
 
+NDArray = np.ndarray
 
 class Tensor:
-    """A tensor class for deep learning with automatic differentiation support."""
-
-    def __init__(self, data, *, device=None, dtype="float32", requires_grad=True):
+    def __init__(self, data, *, device=None, dtype="float32",
+         requires_grad=True):
         """
-        Initialize a Tensor.
-
+        Create a new tensor.
         Args:
-            data: Input data - can be a list, scalar, NumPy ndarray, or another Tensor
-            device: Device placement (currently only "cpu" supported)
-            dtype: Data type (default "float32")
-            requires_grad: Whether to track gradients (default True)
-        """
-        # Normalize data to NumPy array
-        if isinstance(data, Tensor):
-            data = data.data.copy()
-        elif isinstance(data, np.ndarray):
-            data = data.copy()
-        else:
-            data = np.array(data)
+            data: Array-like data (list, numpy array, or another Tensor)
+            device: Device placement (currently ignored, CPU only)
+            dtype: Data type for the array
+            requires_grad: Whether to track gradients for this tensor
 
-        self.data = data.astype(dtype)
-        self._dtype = dtype
-        self.grad = None
-        self.requires_grad = requires_grad
-        self._op = None  # Operation that created this tensor
-        self._inputs = []  # Input tensors used to create this one
-        self._device = device if device is not None else "cpu"
+        Design decision: requires_grad defaults to True (unlike PyTorch)
+         (Will change later to false, when introducing Parameter)
+        """
+        # if data isinstance of Tensor
+
+        # if data instance of np.ndarray
+
+        # if data instance of List/Scalar
 
     def __repr__(self):
+        """
+        Detailed representation showing data and gradient tracking.
+        Example:
+            >>> x = Tensor([1, 2, 3])
+            >>> print(repr(x))
+            Tensor([1. 2. 3.], requires_grad=True)
+        """
         return f"Tensor({self.data}, requires_grad={self.requires_grad})"
-
     def __str__(self):
+        """
+        Simple string representation (just the data).
+        Example:
+            >>> x = Tensor([1, 2, 3])
+            >>> print(x)
+            [1. 2. 3.]
+        """
         return str(self.data)
-
-    @property
-    def shape(self):
-        """Returns the tensor dimensions."""
-        return self.data.shape
-
-    @property
-    def dtype(self):
-        """Returns the data type."""
-        return self._dtype
-
-    @property
-    def ndim(self):
-        """Returns the number of dimensions."""
-        return self.data.ndim
-
-    @property
-    def size(self):
-        """Returns the total number of elements."""
-        return self.data.size
-
-    @property
-    def device(self):
-        """Returns the device location."""
-        return self._device
-
-    def numpy(self):
-        """Returns a copy of the internal NumPy array, detached from computation graph."""
-        return self.data.copy()
-
-    def detach(self):
-        """Creates a new Tensor with the same data but requires_grad=False."""
-        return Tensor(self.data, device=self._device, dtype=self._dtype, requires_grad=False)
-
-    def backward(self):
-        """Compute gradients via backpropagation. (Stub for future implementation)"""
-        pass
+    def backward(self, out_grad=None):
+        # we will do this in next chapter !.

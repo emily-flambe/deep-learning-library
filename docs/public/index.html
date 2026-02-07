@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>babygrad: Build a Deep Learning Library from Scratch</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>babygrad</h1>
+  <p>Build a deep learning library from scratch. Learn how tensors, autograd, and neural networks actually work.</p>
+
+  <h2>Chapters</h2>
+  <ol>
+    <li><a href="chapter1.html">The Tensor Class</a> — What is a tensor? Why do we need one?</li>
+  </ol>
+
+  <h2>Prerequisites</h2>
+  <ul>
+    <li>Basic Python (functions, classes, loops)</li>
+    <li>Some familiarity with NumPy is helpful but not required</li>
+  </ul>
+
+  <h2>Setup</h2>
+  <pre><code># Create project folder
+mkdir babygrad-project && cd babygrad-project
+
+# Set up with uv
+uv init --name babygrad
+uv add numpy
+uv add --dev pytest
+
+# Create folder structure
+mkdir babygrad examples tests</code></pre>
+
+  <p>Your project should look like:</p>
+  <pre><code>babygrad-project/
+├─ .venv/
+├─ babygrad/
+├─ examples/
+└─ tests/</code></pre>
+
+  <hr style="margin-top: 3rem;">
+  <p style="font-size: 0.85rem; color: #666;">
+    This tutorial is a rewrite of <a href="https://zekcrates.quarto.pub/deep-learning-library/">zekcrates' Deep Learning Library</a>, reorganized for clarity.
+  </p>
+
+</body>
+</html>
