@@ -107,27 +107,44 @@ np.array([[1, 2], [3, 4]]) # nested list → 2D array</code></pre>
 
 class Tensor:
     def __init__(self, data, *, device=None, dtype="float32", requires_grad=True):
+        """
+        Create a new tensor.
 
+        Args:
+            data: Array-like data (list, numpy array, or another Tensor)
+            device: Device placement (currently ignored, CPU only)
+            dtype: Data type for the array
+            requires_grad: Whether to track gradients for this tensor
+        """
         # Step 1: Normalize the input to a numpy array
+        # We need to handle three cases and end up with `data` being a numpy array
+
         if isinstance(data, Tensor):
-            # data is a Tensor—extract the numpy array inside it
-            data = data.data
+            # Case 1: data is a Tensor
+            # We need to extract the numpy array from inside it
+            # A Tensor's numpy array is stored in its .data attribute
+            data = _____  # What attribute of the input Tensor contains the numpy array?
+
         elif isinstance(data, np.ndarray):
-            # data is already a numpy array—nothing to do
+            # Case 2: data is already a numpy array
+            # Nothing to do—it's already what we want
             data = data
+
         else:
-            # data is a list, scalar, or something else—let numpy convert it
-            data = np.array(data)
+            # Case 3: data is something else (list, scalar, tuple, etc.)
+            # Use np.array() to convert it
+            data = _____  # How do you convert something to a numpy array?
 
         # Step 2: Store it with the correct dtype
+        # At this point, `data` is a numpy array. Convert it to the requested dtype.
         self.data = data.astype(dtype)
 
         # Step 3: Initialize the other attributes
-        self.requires_grad = requires_grad
-        self.grad = None              # No gradient computed yet
-        self._device = device or "cpu"
-        self._op = None               # No operation created this (it's a "leaf" tensor)
-        self._inputs = []             # No input tensors (it's a "leaf" tensor)</code></pre>
+        self.requires_grad = _____   # Use the requires_grad parameter passed to __init__
+        self.grad = _____            # No gradient computed yet—what value represents "nothing"?
+        self._device = _____         # Use the device parameter, but default to "cpu" if None
+        self._op = _____             # No operation created this tensor—what value represents "nothing"?
+        self._inputs = _____         # No input tensors—what's an empty collection?</code></pre>
 
       <div class="hint">
         <strong>Understanding <code>isinstance()</code></strong><br>
@@ -139,68 +156,94 @@ isinstance(np.array([1,2,3]), np.ndarray)  # True</code></pre>
 
       <h2>Exercise 2.2: Properties</h2>
 
-      <p>These are simple one-liners. They just expose information about the underlying numpy array.</p>
+      <p>These are simple one-liners. They expose information about the underlying numpy array.</p>
+
+      <p>Implement these properties:</p>
+      <ul>
+        <li><code>shape</code> — return the dimensions, like <code>(3,)</code> or <code>(2, 4)</code></li>
+        <li><code>ndim</code> — return the number of dimensions (1 for vector, 2 for matrix, etc.)</li>
+        <li><code>size</code> — return the total number of elements</li>
+        <li><code>device</code> — return the device location (stored in <code>self._device</code>)</li>
+      </ul>
 
       <pre><code>@property
 def shape(self):
-    """Return dimensions like (3,) or (2, 4)"""
-    return self.data.shape
+    # YOUR CODE HERE
 
 @property
 def ndim(self):
-    """Return number of dimensions (1 for vector, 2 for matrix, etc.)"""
-    return self.data.ndim
+    # YOUR CODE HERE
 
 @property
 def size(self):
-    """Return total number of elements"""
-    return self.data.size
+    # YOUR CODE HERE
 
 @property
 def device(self):
-    """Return device location (always 'cpu' for now)"""
-    return self._device</code></pre>
+    # YOUR CODE HERE</code></pre>
 
       <div class="hint">
         <strong>What's <code>@property</code>?</strong><br>
         It lets you access a method like an attribute—without parentheses. So instead of <code>t.shape()</code>, you can just write <code>t.shape</code>. It's syntactic sugar that makes the API cleaner.
       </div>
 
+      <div class="hint">
+        <strong>Hint:</strong> NumPy arrays already have <code>.shape</code>, <code>.ndim</code>, and <code>.size</code> attributes. Your Tensor's <code>self.data</code> is a numpy array...
+      </div>
+
       <h2>Exercise 2.3: <code>numpy()</code> and <code>detach()</code></h2>
 
       <h3>numpy()</h3>
 
-      <p>Returns a plain numpy array, disconnected from the Tensor.</p>
+      <p>This method returns a plain numpy array, disconnected from the Tensor.</p>
 
       <pre><code>def numpy(self):
     """Return a copy of the data as a plain numpy array."""
-    return self.data.copy()</code></pre>
+    # YOUR CODE HERE</code></pre>
 
       <p><strong>Why return a copy?</strong> So that modifying the returned array doesn't accidentally change the Tensor's data. They stay independent.</p>
 
+      <div class="hint">
+        <strong>Hint:</strong> Use <code>.copy()</code> on a numpy array to get an independent copy.
+      </div>
+
       <h3>detach()</h3>
 
-      <p>Returns a <em>new</em> Tensor with the same data, but with <code>requires_grad=False</code>.</p>
+      <p>This method returns a <em>new</em> Tensor with the same data, but with <code>requires_grad=False</code>.</p>
 
       <pre><code>def detach(self):
     """Create a new Tensor that won't track gradients."""
-    return Tensor(self.data, device=self._device, dtype=str(self.data.dtype), requires_grad=False)</code></pre>
+    # YOUR CODE HERE</code></pre>
 
       <p><strong>Why would you use this?</strong> Sometimes you want to use a tensor's values without including it in the computation graph. For example, when logging values during training, you don't need gradients for that.</p>
 
-      <h2>String Representations</h2>
+      <div class="hint">
+        <strong>Hint:</strong> Create a new <code>Tensor(...)</code> with the same data but <code>requires_grad=False</code>.
+      </div>
 
-      <p>Python has two ways to convert an object to a string:</p>
+      <h2>Exercise 2.4: String Representations</h2>
+
+      <p>Python has two ways to convert an object to a string. Implement both:</p>
 
       <pre><code>def __repr__(self):
-    """Detailed view (for debugging). Shows data and requires_grad."""
-    return f"Tensor({self.data}, requires_grad={self.requires_grad})"
+    """
+    Detailed view (for debugging). Shows data and requires_grad.
+    Example output: Tensor([1. 2. 3.], requires_grad=True)
+    """
+    # YOUR CODE HERE
 
 def __str__(self):
-    """Simple view (for printing). Just shows the data."""
-    return str(self.data)</code></pre>
+    """
+    Simple view (for printing). Just shows the data.
+    Example output: [1. 2. 3.]
+    """
+    # YOUR CODE HERE</code></pre>
 
       <p><code>__repr__</code> is what you see when you type a variable name in the REPL. <code>__str__</code> is what <code>print()</code> uses.</p>
+
+      <div class="hint">
+        <strong>Hint:</strong> Use f-strings for <code>__repr__</code>. For <code>__str__</code>, just convert <code>self.data</code> to a string.
+      </div>
 
       <h2>What's Next?</h2>
 
