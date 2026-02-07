@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 11: Solutions — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li class="active"><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 11: Solutions</h1>
+
+      <p>This page provides solutions for all exercises in the babygrad tutorial.</p>
+
+      <h2>Tensor Implementation</h2>
+
+      <h3>Exercise 2.1: Tensor Class</h3>
+      <pre><code>class Tensor:
+    def __init__(self, data, *, device=None, dtype="float32", requires_grad=True):
+        if isinstance(data, Tensor):
+            self.data = data.data.astype(dtype)
+        elif isinstance(data, np.ndarray):
+            self.data = data.astype(dtype)
+        else:
+            # List or scalar
+            self.data = np.array(data, dtype=dtype)
+
+        self._device = device
+        self.requires_grad = requires_grad
+        self.grad = None
+        self._op = None
+        self._inputs = []</code></pre>
+
+      <h2>Automatic Differentiation</h2>
+
+      <h3>Basic Operations</h3>
+      <p>Power, division, negation, logarithm, exponential, and square root with their derivatives:</p>
+
+      <pre><code>def __pow__(self, power):
+    out = Tensor(self.data ** power, requires_grad=self.requires_grad)
+    out._op = 'pow'
+    out._inputs = [self]
+    out._power = power
+    return out
+
+def _backward_pow(self):
+    # d/dx(x^n) = n * x^(n-1)
+    self._inputs[0].grad += self._power * (self._inputs[0].data ** (self._power - 1)) * self.grad</code></pre>
+
+      <h3>Activation Functions</h3>
+      <pre><code>def relu(self):
+    out = Tensor(np.maximum(0, self.data), requires_grad=self.requires_grad)
+    out._op = 'relu'
+    out._inputs = [self]
+    return out
+
+def _backward_relu(self):
+    # Gradient is 1 where input > 0, else 0
+    self._inputs[0].grad += (self._inputs[0].data > 0) * self.grad
+
+def sigmoid(self):
+    s = 1 / (1 + np.exp(-self.data))
+    out = Tensor(s, requires_grad=self.requires_grad)
+    out._op = 'sigmoid'
+    out._inputs = [self]
+    return out
+
+def _backward_sigmoid(self):
+    # d/dx(sigmoid) = sigmoid * (1 - sigmoid)
+    s = 1 / (1 + np.exp(-self._inputs[0].data))
+    self._inputs[0].grad += s * (1 - s) * self.grad</code></pre>
+
+      <h2>Neural Network Modules</h2>
+
+      <h3>Exercise 3.2: Linear Layer</h3>
+      <pre><code>class Linear(Module):
+    def __init__(self, in_features, out_features, bias=True):
+        super().__init__()
+        # Xavier initialization
+        bound = np.sqrt(6.0 / (in_features + out_features))
+        self.weight = Parameter(np.random.uniform(-bound, bound, (in_features, out_features)))
+        self.bias = Parameter(np.zeros(out_features)) if bias else None
+
+    def forward(self, x):
+        out = x @ self.weight
+        if self.bias is not None:
+            out = out + self.bias
+        return out</code></pre>
+
+      <h3>Exercise 3.3: Dropout</h3>
+      <pre><code>class Dropout(Module):
+    def __init__(self, p=0.5):
+        super().__init__()
+        self.p = p
+
+    def forward(self, x):
+        if self.training and self.p > 0:
+            mask = (np.random.rand(*x.shape) > self.p).astype(x.dtype)
+            return x * Tensor(mask) / (1 - self.p)
+        return x</code></pre>
+
+      <h3>Exercise 3.4: SoftmaxLoss</h3>
+      <pre><code>class SoftmaxLoss(Module):
+    def forward(self, logits, targets):
+        # LogSumExp for numerical stability
+        max_logits = logits.data.max(axis=1, keepdims=True)
+        shifted = logits.data - max_logits
+        logsumexp = max_logits.squeeze() + np.log(np.exp(shifted).sum(axis=1))
+
+        # Get logits at target indices
+        batch_size = logits.shape[0]
+        target_logits = logits.data[np.arange(batch_size), targets]
+
+        # Cross-entropy loss
+        loss = (logsumexp - target_logits).mean()
+        return Tensor(loss, requires_grad=True)</code></pre>
+
+      <h2>Optimizers</h2>
+
+      <h3>Exercise 4.1: SGD</h3>
+      <pre><code>class SGD(Optimizer):
+    def __init__(self, params, lr=0.01):
+        super().__init__(params)
+        self.lr = lr
+
+    def step(self):
+        for param in self.params:
+            if param.grad is not None:
+                param.data -= self.lr * param.grad</code></pre>
+
+      <h3>Exercise 4.2: Adam</h3>
+      <pre><code>class Adam(Optimizer):
+    def __init__(self, params, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
+        super().__init__(params)
+        self.lr = lr
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        self.t = 0
+        self.m = {}
+        self.v = {}
+
+    def step(self):
+        self.t += 1
+        for param in self.params:
+            if param.grad is None:
+                continue
+
+            grad = param.grad
+
+            # Update biased first moment estimate
+            mt = self.m.get(param, 0) * self.beta1 + (1 - self.beta1) * grad
+            self.m[param] = mt
+
+            # Update biased second moment estimate
+            vt = self.v.get(param, 0) * self.beta2 + (1 - self.beta2) * (grad ** 2)
+            self.v[param] = vt
+
+            # Bias correction
+            mt_hat = mt / (1 - self.beta1 ** self.t)
+            vt_hat = vt / (1 - self.beta2 ** self.t)
+
+            # Update parameters
+            param.data -= self.lr * mt_hat / (np.sqrt(vt_hat) + self.eps)</code></pre>
+
+      <h2>Data Handling</h2>
+
+      <h3>Exercise 5.1: MNISTDataset</h3>
+      <pre><code>class MNISTDataset(Dataset):
+    def __getitem__(self, index):
+        img = self.images[index].reshape(28, 28, 1).astype(np.float32)
+        label = self.labels[index]
+        img = self.apply_transform(img)
+        return img, label</code></pre>
+
+      <h3>Exercise 5.2: DataLoader</h3>
+      <pre><code>class DataLoader:
+    def __next__(self):
+        if self.current >= len(self.indices):
+            raise StopIteration
+
+        batch_indices = self.indices[self.current:self.current + self.batch_size]
+        self.current += self.batch_size
+
+        samples = [self.dataset[i] for i in batch_indices]
+        batch_x = np.stack([s[0] for s in samples])
+        batch_y = np.array([s[1] for s in samples])
+
+        return Tensor(batch_x, requires_grad=False), batch_y</code></pre>
+
+      <h2>Initialization</h2>
+
+      <h3>Exercise 6.1-6.4: Initialization Functions</h3>
+      <pre><code>def xavier_uniform(fan_in, fan_out, gain=1.0):
+    a = gain * np.sqrt(6.0 / (fan_in + fan_out))
+    return Tensor(np.random.uniform(-a, a, (fan_in, fan_out)))
+
+def xavier_normal(fan_in, fan_out, gain=1.0):
+    std = gain * np.sqrt(2.0 / (fan_in + fan_out))
+    return Tensor(np.random.randn(fan_in, fan_out) * std)
+
+def kaiming_uniform(fan_in, fan_out, gain=np.sqrt(2)):
+    a = gain * np.sqrt(3.0 / fan_in)
+    return Tensor(np.random.uniform(-a, a, (fan_in, fan_out)))
+
+def kaiming_normal(fan_in, fan_out, gain=np.sqrt(2)):
+    std = gain / np.sqrt(fan_in)
+    return Tensor(np.random.randn(fan_in, fan_out) * std)</code></pre>
+
+      <h2>Model Persistence</h2>
+
+      <h3>Exercise 7.1-7.2: state_dict and load_state_dict</h3>
+      <pre><code>def state_dict(self):
+    result = {}
+    for name, value in self.__dict__.items():
+        if name.startswith('_'):
+            continue
+        if isinstance(value, Parameter):
+            result[name] = value.data.copy()
+        elif isinstance(value, Module):
+            for k, v in value.state_dict().items():
+                result[f"{name}.{k}"] = v
+        elif isinstance(value, (list, tuple)):
+            for i, item in enumerate(value):
+                if isinstance(item, Module):
+                    for k, v in item.state_dict().items():
+                        result[f"{name}.{i}.{k}"] = v
+    return result
+
+def load_state_dict(self, state_dict):
+    for name, value in self.__dict__.items():
+        if name.startswith('_'):
+            continue
+        if isinstance(value, Parameter):
+            if name in state_dict:
+                value.data = state_dict[name]
+        elif isinstance(value, Module):
+            prefix = f"{name}."
+            sub_dict = {k[len(prefix):]: v for k, v in state_dict.items()
+                       if k.startswith(prefix)}
+            value.load_state_dict(sub_dict)
+        elif isinstance(value, (list, tuple)):
+            for i, item in enumerate(value):
+                if isinstance(item, Module):
+                    prefix = f"{name}.{i}."
+                    sub_dict = {k[len(prefix):]: v for k, v in state_dict.items()
+                               if k.startswith(prefix)}
+                    item.load_state_dict(sub_dict)</code></pre>
+
+      <h2>Trainer</h2>
+
+      <h3>Exercise 8.1: Trainer fit and assess</h3>
+      <pre><code>def fit(self, epochs):
+    for epoch in range(epochs):
+        self.model.train()
+        total_loss = 0
+
+        for batch_x, batch_y in self.train_loader:
+            self.optimizer.zero_grad()
+            pred = self.model(batch_x)
+            loss = self.loss_fn(pred, batch_y)
+            loss.backward()
+            self.optimizer.step()
+            total_loss += loss.data
+
+        avg_loss = total_loss / len(self.train_loader)
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
+
+        if self.val_loader:
+            self.assess()
+
+def assess(self):
+    self.model.set_inference_mode()  # not training
+    correct = 0
+    total = 0
+
+    for batch_x, batch_y in self.val_loader:
+        pred = self.model(batch_x)
+        predicted = np.argmax(pred.data, axis=1)
+        correct += (predicted == batch_y).sum()
+        total += len(batch_y)
+
+    accuracy = correct / total
+    print(f"Validation Accuracy: {accuracy:.4f}")
+    return accuracy</code></pre>
+
+      <h2>Convolutional Operations</h2>
+
+      <h3>Exercise 9.1-9.3: Conv2d</h3>
+      <pre><code>def conv_forward(x, weight, bias, padding, stride):
+    N, C_in, H, W = x.shape
+    C_out, _, kH, kW = weight.shape
+
+    H_out = (H + 2*padding - kH) // stride + 1
+    W_out = (W + 2*padding - kW) // stride + 1
+
+    # Pad input
+    x_padded = np.pad(x, ((0,0), (0,0), (padding,padding), (padding,padding)))
+
+    # im2col
+    cols = im2col(x_padded, kH, kW, stride)  # (N, C_in*kH*kW, H_out*W_out)
+
+    # Reshape weight
+    weight_flat = weight.reshape(C_out, -1)  # (C_out, C_in*kH*kW)
+
+    # Matrix multiplication
+    out = weight_flat @ cols  # (N, C_out, H_out*W_out)
+    out = out.reshape(N, C_out, H_out, W_out)
+
+    if bias is not None:
+        out += bias.reshape(1, -1, 1, 1)
+
+    return out</code></pre>
+
+      <div class="nav">
+        <a href="examples.html">&larr; Examples</a>
+        <a href="conclusion.html">Next: Conclusion &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/solutions.html">zekcrates/solutions</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

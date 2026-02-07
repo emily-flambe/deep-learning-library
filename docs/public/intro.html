@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Introduction — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li class="active"><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Introduction</h1>
+
+      <blockquote>
+        <p><em>"If you wish to make an apple pie from scratch, you must first invent the universe."</em></p>
+      </blockquote>
+
+      <p>This book guides you through building a PyTorch-inspired deep learning library using Python and NumPy. No CUDA kernels, no backend libraries—just the core concepts implemented from scratch.</p>
+
+      <h2>What's Included</h2>
+      <ul>
+        <li>NumPy-based numerical computations</li>
+        <li>PyTorch-like architecture patterns</li>
+        <li>Practical model implementation examples</li>
+      </ul>
+
+      <h2>What's Not Included</h2>
+      <ul>
+        <li>Custom CUDA kernels or GPU support</li>
+        <li>Advanced optimization techniques</li>
+        <li>Production-ready performance</li>
+      </ul>
+
+      <h2>The Journey</h2>
+      <p>We'll build up from first principles:</p>
+      <ol>
+        <li><strong>Tensor</strong> — The data container that tracks its own history</li>
+        <li><strong>Automatic Differentiation</strong> — Computing gradients without manual calculus</li>
+        <li><strong>Neural Network Modules</strong> — Reusable building blocks (Linear, ReLU, etc.)</li>
+        <li><strong>Optimizers</strong> — SGD, Adam, and the math behind weight updates</li>
+        <li><strong>Data Handling</strong> — Datasets and DataLoaders</li>
+        <li><strong>Training Infrastructure</strong> — Initialization, saving/loading, training loops</li>
+        <li><strong>Convolutional Networks</strong> — Image processing with CNNs</li>
+      </ol>
+
+      <p>By the end, you'll understand deep learning from foundational principles rather than relying on pre-built frameworks.</p>
+
+      <div class="nav">
+        <a href="index.html">← Home</a>
+        <a href="tensor.html">Next: Tensor →</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/intro.html">zekcrates/intro</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

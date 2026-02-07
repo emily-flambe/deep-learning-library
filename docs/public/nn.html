@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 4: nn — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li class="active"><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 4: nn</h1>
+
+      <h2>3.1 Parameter</h2>
+      <p>A <code>Parameter</code> is a <code>Tensor</code> subclass that automatically sets <code>requires_grad=True</code>, marking tensors as learnable weights. This distinguishes parameters from temporary tensors and enables automatic discovery during optimization.</p>
+
+      <pre><code>class Parameter(Tensor):
+    def __init__(self, data, **kwargs):
+        kwargs['requires_grad'] = True
+        super().__init__(data, **kwargs)</code></pre>
+
+      <h2>3.2 Module Base Class</h2>
+      <p>The <code>Module</code> class serves as the foundation for all neural network components. It provides:</p>
+      <ul>
+        <li><strong>Parameter management</strong>: Recursively finds all learnable weights</li>
+        <li><strong>Forward pass</strong>: Abstract method for subclasses to implement</li>
+        <li><strong>Training state</strong>: Tracks whether the model is training or evaluating</li>
+      </ul>
+
+      <p>The chapter distinguishes between training mode (where certain layers behave differently) and evaluation mode, essential for layers like Dropout and BatchNorm.</p>
+
+      <div class="exercise">
+        <h3>Exercise 3.1: Module Base Class</h3>
+        <p>Implement the base Module class with parameter discovery and training mode toggling.</p>
+        <pre><code>class Module:
+    def __init__(self):
+        self.training = True
+
+    def parameters(self):
+        """Recursively collect all Parameters in this module."""
+        # Your solution here
+        pass
+
+    def train(self):
+        """Set the module to training mode."""
+        self.training = True
+        # Recursively set children to train mode
+
+    def eval(self):
+        """Set the module to evaluation mode."""
+        self.training = False
+        # Recursively set children to eval mode
+
+    def forward(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)</code></pre>
+      </div>
+
+      <h2>3.3 Stateless Layers</h2>
+      <p>Stateless layers have no learnable parameters:</p>
+
+      <h3>ReLU</h3>
+      <p>Applies the Rectified Linear Unit function element-wise: <code>max(0, x)</code></p>
+      <pre><code>class ReLU(Module):
+    def forward(self, x):
+        return x.relu()</code></pre>
+
+      <h3>Flatten</h3>
+      <p>Reshapes tensors to <code>(batch_size, -1)</code> format, preserving the batch dimension while flattening all other dimensions.</p>
+      <pre><code>class Flatten(Module):
+    def forward(self, x):
+        batch_size = x.shape[0]
+        return x.reshape((batch_size, -1))</code></pre>
+
+      <h3>Sigmoid and Tanh</h3>
+      <p>Standard activation functions for bounded outputs.</p>
+
+      <h2>3.4 Stateful Layers</h2>
+      <p>Stateful layers contain learnable parameters:</p>
+
+      <h3>Linear</h3>
+      <p>Implements a fully connected layer: <code>output = x @ Weight + bias</code></p>
+
+      <div class="exercise">
+        <h3>Exercise 3.2: Linear Layer</h3>
+        <pre><code>class Linear(Module):
+    def __init__(self, in_features, out_features, bias=True):
+        super().__init__()
+        self.weight = Parameter(...)  # Shape: (in_features, out_features)
+        self.bias = Parameter(...) if bias else None  # Shape: (out_features,)
+
+    def forward(self, x):
+        # Your solution here
+        pass</code></pre>
+      </div>
+
+      <h3>Sequential</h3>
+      <p>Chains modules together automatically, passing the output of each module as input to the next.</p>
+      <pre><code>class Sequential(Module):
+    def __init__(self, *modules):
+        super().__init__()
+        self.modules = modules
+
+    def forward(self, x):
+        for module in self.modules:
+            x = module(x)
+        return x</code></pre>
+
+      <h3>Residual</h3>
+      <p>Creates skip connections implementing <code>f(x) + x</code>, allowing gradients to flow directly through the network.</p>
+
+      <h2>3.5 Regularization and Normalization</h2>
+
+      <h3>Dropout</h3>
+      <p>Randomly sets some input elements to zero with probability p during training. This helps prevent overfitting by forcing the network to learn redundant representations.</p>
+
+      <div class="exercise">
+        <h3>Exercise 3.3: Dropout</h3>
+        <pre><code>class Dropout(Module):
+    def __init__(self, p=0.5):
+        super().__init__()
+        self.p = p
+
+    def forward(self, x):
+        if self.training:
+            # Create random mask and scale by 1/(1-p)
+            # Your solution here
+            pass
+        return x</code></pre>
+      </div>
+
+      <h3>LayerNorm1d</h3>
+      <p>Normalizes over feature dimensions, stabilizing training by ensuring consistent activation distributions.</p>
+
+      <h3>BatchNorm1d</h3>
+      <p>Normalizes over batch dimensions with running statistics. During training, it uses batch statistics; during evaluation, it uses accumulated running statistics.</p>
+
+      <h2>3.6 Loss Functions</h2>
+
+      <h3>MSELoss</h3>
+      <p>Calculates the average of squared differences between predictions and targets:</p>
+      <pre><code>loss = mean((predictions - targets)^2)</code></pre>
+
+      <h3>SoftmaxLoss</h3>
+      <p>Implements cross-entropy loss using the logsumexp trick for numerical stability. This combines softmax normalization with negative log-likelihood.</p>
+
+      <div class="exercise">
+        <h3>Exercise 3.4: SoftmaxLoss</h3>
+        <pre><code>class SoftmaxLoss(Module):
+    def forward(self, logits, targets):
+        # Use logsumexp for numerical stability
+        # logsumexp = log(sum(exp(logits)))
+        # loss = logsumexp - logits[targets]
+        # Your solution here
+        pass</code></pre>
+      </div>
+
+      <div class="nav">
+        <a href="autograd.html">&larr; Automatic Differentiation</a>
+        <a href="optim.html">Next: Optimizer &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/nn.html">zekcrates/nn</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 10: Convolutional NN — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li class="active"><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 10: Convolutional NN</h1>
+
+      <h2>Why CNNs?</h2>
+      <p>Linear layers are inefficient for image data. A 64x64x6 image would require 24,576 parameters just for the first layer. CNNs introduce spatial feature learning through kernels that slide across images, dramatically reducing parameters while capturing local patterns.</p>
+
+      <h2>Core Concepts</h2>
+
+      <h3>Padding</h3>
+      <p>Adding additional zeros in the spatial dimensions. This allows the kernel to process edge pixels and can maintain output size.</p>
+
+      <h3>Stride</h3>
+      <p>Controls how many pixels the kernel moves at each step. Stride > 1 reduces output dimensions.</p>
+
+      <h3>Output Size Formula</h3>
+      <pre><code>output_size = (Input + 2*Padding - Kernel) / Stride + 1</code></pre>
+
+      <h2>Implementation Approaches</h2>
+
+      <h3>1. Simple Convolution (Naive)</h3>
+      <p>Basic nested loops - slow but conceptually clear:</p>
+      <pre><code>def conv_naive(input, kernel, padding=0, stride=1):
+    # Pad input
+    # For each output position:
+    #   Extract patch
+    #   Element-wise multiply with kernel
+    #   Sum results
+    pass</code></pre>
+
+      <h3>2. Matrix Multiplication Approach</h3>
+      <p>Instead of doing a calculation for each pixel, we shift focus to how each weight affects output entirely at once. This reformulates convolution as matrix multiplication.</p>
+
+      <h3>3. im2col Trick</h3>
+      <p>Converting patches into matrices for optimized computation using NumPy's stride manipulation:</p>
+      <pre><code>def im2col(input, kernel_size, padding, stride):
+    """
+    Rearrange image patches into columns for matrix multiplication.
+
+    Input: (N, C, H, W)
+    Output: (N, C*kH*kW, out_H*out_W)
+    """
+    # Use np.lib.stride_tricks.as_strided for efficient patch extraction
+    pass</code></pre>
+
+      <h2>Forward Pass</h2>
+
+      <div class="exercise">
+        <h3>Exercise 9.1: Conv2d Forward</h3>
+        <pre><code>def conv_forward(x, weight, bias, padding, stride):
+    """
+    Convolutional layer forward pass.
+
+    Args:
+        x: Input tensor (N, C_in, H, W)
+        weight: Filter weights (C_out, C_in, kH, kW)
+        bias: Bias terms (C_out,) or None
+        padding: Padding amount
+        stride: Stride value
+
+    Returns:
+        Output tensor (N, C_out, H_out, W_out)
+    """
+    N, C_in, H, W = x.shape
+    C_out, _, kH, kW = weight.shape
+
+    # Calculate output dimensions
+    H_out = (H + 2*padding - kH) // stride + 1
+    W_out = (W + 2*padding - kW) // stride + 1
+
+    # Use im2col to extract patches
+    # Reshape weight for matrix multiplication
+    # Perform batched matrix multiplication
+    # Add bias if present
+    # Reshape to output dimensions
+    # Your solution here
+    pass</code></pre>
+      </div>
+
+      <h2>Backward Pass</h2>
+
+      <p>The backward pass requires computing gradients for both input and weights:</p>
+
+      <h3>Gradient w.r.t. Weights</h3>
+      <p>Each weight element contributes to multiple output elements. The gradient is computed by correlating input patches with output gradients.</p>
+
+      <h3>Gradient w.r.t. Input</h3>
+      <p>Requires "transposed convolution" - the relationship between forward padding and backward padding is inverted.</p>
+
+      <h3>Helper Operations</h3>
+
+      <h4>Flip</h4>
+      <p>Reverses kernel for gradient computation:</p>
+      <pre><code>def flip(x):
+    """Flip kernel 180 degrees (reverse both spatial dimensions)."""
+    return x[..., ::-1, ::-1]</code></pre>
+
+      <h4>Dilate</h4>
+      <p>Inserts zeros between elements for handling stride in backpropagation:</p>
+      <pre><code>def dilate(x, dilation):
+    """Insert zeros between elements."""
+    if dilation == 0:
+        return x
+    # Create output with zeros
+    # Fill in original values at strided positions
+    pass</code></pre>
+
+      <div class="exercise">
+        <h3>Exercise 9.2: Conv2d Backward</h3>
+        <pre><code>def conv_backward(grad_output, x, weight, padding, stride):
+    """
+    Convolutional layer backward pass.
+
+    Args:
+        grad_output: Gradient from next layer (N, C_out, H_out, W_out)
+        x: Original input (N, C_in, H, W)
+        weight: Filter weights (C_out, C_in, kH, kW)
+        padding: Original padding
+        stride: Original stride
+
+    Returns:
+        grad_x: Gradient w.r.t. input
+        grad_weight: Gradient w.r.t. weights
+        grad_bias: Gradient w.r.t. bias
+    """
+    # Dilate grad_output if stride > 1
+    # Compute grad_weight via correlation
+    # Compute grad_x via transposed convolution
+    # Compute grad_bias by summing over batch and spatial dims
+    # Your solution here
+    pass</code></pre>
+      </div>
+
+      <h2>nn.Conv Module</h2>
+
+      <div class="exercise">
+        <h3>Exercise 9.3: Conv2d Module</h3>
+        <pre><code>class Conv2d(Module):
+    def __init__(self, in_channels, out_channels, kernel_size,
+                 stride=1, padding=0, bias=True):
+        super().__init__()
+        self.stride = stride
+        self.padding = padding
+
+        # Initialize weights with proper shape
+        # (out_channels, in_channels, kernel_size, kernel_size)
+        self.weight = Parameter(...)
+        self.bias = Parameter(...) if bias else None
+
+    def forward(self, x):
+        # Handle NHWC to NCHW conversion if needed
+        # Call conv_forward
+        # Your solution here
+        pass</code></pre>
+      </div>
+
+      <h2>Data Format Note</h2>
+      <p>This implementation uses NCHW format (batch, channels, height, width). If your data is in NHWC format (common for image libraries), transpose before and after convolution:</p>
+      <pre><code># NHWC to NCHW
+x = x.transpose((0, 3, 1, 2))
+# ... convolution ...
+# NCHW to NHWC
+x = x.transpose((0, 2, 3, 1))</code></pre>
+
+      <div class="nav">
+        <a href="trainer.html">&larr; Trainer</a>
+        <a href="examples.html">Next: Examples &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/cnn.html">zekcrates/cnn</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

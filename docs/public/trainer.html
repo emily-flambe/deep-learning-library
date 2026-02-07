@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 9: Trainer — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li class="active"><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 9: Trainer</h1>
+
+      <p>This chapter introduces a <strong>Trainer class</strong> that encapsulates the repetitive boilerplate code found in machine learning training loops. Rather than writing the same training logic repeatedly, developers can leverage this abstraction.</p>
+
+      <h2>Problem Statement</h2>
+      <p>Typical training loops follow a consistent pattern:</p>
+
+      <pre><code>model = MyModel()
+optimizer = MyOptimizer()
+dataloader = MyDataloader()
+
+for epoch in range(10):
+    for batch in dataloader:
+        optimizer.zero_grad()
+        pred = model(batch.x)
+        loss = loss_fn(pred, batch.y)
+        loss.backward()
+        optimizer.step()</code></pre>
+
+      <p>The repetitive nature of this structure across projects motivates creating a reusable <strong>Trainer</strong> abstraction.</p>
+
+      <h2>Required Components</h2>
+      <p>The Trainer class needs:</p>
+      <ul>
+        <li>Model</li>
+        <li>Loss function</li>
+        <li>Optimizer</li>
+        <li>Training dataloader</li>
+        <li>Validation dataloader (optional)</li>
+      </ul>
+
+      <h2>Usage Pattern</h2>
+      <pre><code>trainer = Trainer(
+    model,
+    optimizer,
+    loss_fn,
+    train_loader,
+    val_loader=test_loader
+)
+
+print("Starting Training...")
+trainer.fit(EPOCHS)</code></pre>
+
+      <div class="exercise">
+        <h3>Exercise 8.1: Trainer Implementation</h3>
+        <p>Implement two methods in <code>babygrad/trainer.py</code>:</p>
+
+        <h4>fit() method requirements:</h4>
+        <ul>
+          <li>Iterate through training batches</li>
+          <li>Zero gradients</li>
+          <li>Execute forward pass</li>
+          <li>Calculate loss</li>
+          <li>Execute backward pass</li>
+          <li>Update parameters</li>
+        </ul>
+
+        <h4>assess() method requirements:</h4>
+        <ul>
+          <li>Set model to assessment mode (not training)</li>
+          <li>Loop through validation data</li>
+          <li>Perform forward pass only</li>
+          <li>Compare predictions using argmax</li>
+          <li>Calculate accuracy metrics</li>
+        </ul>
+
+        <pre><code>class Trainer:
+    def __init__(self, model, optimizer, loss_fn, train_loader, val_loader=None):
+        self.model = model
+        self.optimizer = optimizer
+        self.loss_fn = loss_fn
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+
+    def fit(self, epochs):
+        """
+        Train the model for a specified number of epochs.
+
+        Args:
+            epochs: Number of training epochs
+        """
+        for epoch in range(epochs):
+            self.model.train()
+            total_loss = 0
+
+            for batch_x, batch_y in self.train_loader:
+                # Zero gradients
+                self.optimizer.zero_grad()
+
+                # Forward pass
+                # Your solution here
+
+                # Calculate loss
+                # Your solution here
+
+                # Backward pass
+                # Your solution here
+
+                # Update parameters
+                # Your solution here
+
+                total_loss += loss.data
+
+            avg_loss = total_loss / len(self.train_loader)
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
+
+            if self.val_loader:
+                self.assess()
+
+    def assess(self):
+        """
+        Assess the model on the validation set.
+
+        Returns:
+            Accuracy as a float
+        """
+        self.model.set_mode_inference()  # not training mode
+        correct = 0
+        total = 0
+
+        for batch_x, batch_y in self.val_loader:
+            # Forward pass only
+            # Your solution here
+
+            # Get predictions using argmax
+            # Your solution here
+
+            # Count correct predictions
+            # Your solution here
+            pass
+
+        accuracy = correct / total
+        print(f"Validation Accuracy: {accuracy:.4f}")
+        return accuracy</code></pre>
+      </div>
+
+      <h2>Complete Example</h2>
+      <pre><code>from babygrad import nn, optim
+from babygrad.data import MNISTDataset, DataLoader
+from babygrad.trainer import Trainer
+
+# Define model
+model = nn.Sequential(
+    nn.Flatten(),
+    nn.Linear(784, 256),
+    nn.ReLU(),
+    nn.Linear(256, 10)
+)
+
+# Setup training
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+loss_fn = nn.SoftmaxLoss()
+
+# Create data loaders
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=64)
+
+# Train
+trainer = Trainer(model, optimizer, loss_fn, train_loader, val_loader=test_loader)
+trainer.fit(epochs=10)</code></pre>
+
+      <div class="nav">
+        <a href="saving.html">&larr; Model Persistence</a>
+        <a href="cnn.html">Next: Convolutional NN &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/trainer.html">zekcrates/trainer</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 13: Conclusion — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li class="active"><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 13: Conclusion</h1>
+
+      <p>Congratulations on completing the babygrad tutorial! You have built a functional deep learning library from scratch.</p>
+
+      <h2>What You Built</h2>
+      <ul>
+        <li><strong>Tensor</strong>: A data structure that tracks computation history</li>
+        <li><strong>Autograd</strong>: Automatic differentiation via reverse-mode backpropagation</li>
+        <li><strong>Neural Network Modules</strong>: Composable building blocks for models</li>
+        <li><strong>Optimizers</strong>: SGD and Adam for parameter updates</li>
+        <li><strong>Data Handling</strong>: Dataset and DataLoader abstractions</li>
+        <li><strong>Initialization</strong>: Xavier and Kaiming weight initialization</li>
+        <li><strong>Model Persistence</strong>: Save and load model weights</li>
+        <li><strong>Trainer</strong>: High-level training loop abstraction</li>
+        <li><strong>Convolutions</strong>: 2D convolutional layers with im2col optimization</li>
+      </ul>
+
+      <h2>Extending Your Learning</h2>
+      <p>Consider these next steps:</p>
+      <ul>
+        <li>Add custom layers to the library</li>
+        <li>Redesign the autograd engine for better efficiency</li>
+        <li>Optimize computational loops with vectorization</li>
+      </ul>
+
+      <h2>Deeper Topics to Explore</h2>
+      <p>To truly understand deep learning frameworks, study:</p>
+      <ul>
+        <li>How a matrix is organized inside memory</li>
+        <li>The concepts of strides and offsets that define memory layout</li>
+        <li>Broadcasting rules and reshaping operations</li>
+      </ul>
+
+      <h2>Future Directions</h2>
+      <p>A logical next step involves creating your own low-level backend, one that is powered by C++ and supports both CPU and GPU execution.</p>
+
+      <p>This tutorial took a pretty basic approach, focused on high-level, simple implementations, without much detailed consideration of underlying memory management, low-level systems programming, or GPU parallel architectures. These are rich areas for further exploration.</p>
+
+      <h2>Resources</h2>
+      <ul>
+        <li><a href="https://github.com/karpathy/micrograd">micrograd</a> - Andrej Karpathy's tiny autograd engine</li>
+        <li><a href="https://pytorch.org/tutorials/">PyTorch Tutorials</a> - Official PyTorch documentation</li>
+        <li><a href="https://www.deeplearning.ai/">Deep Learning Specialization</a> - Andrew Ng's courses</li>
+      </ul>
+
+      <h2>Thank You</h2>
+      <p>Thank you for reading! If you found this tutorial helpful, consider supporting the original author.</p>
+
+      <div class="nav">
+        <a href="solutions.html">&larr; Solutions</a>
+        <a href="index.html">Back to Home &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/conclusion.html">zekcrates/conclusion</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 3: Automatic Differentiation — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li class="active"><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 3: Automatic Differentiation</h1>
+
+      <p>Automatic Differentiation is the heart of every deep learning library. It calculates how much each parameter contributed to the final error without manual math for each model.</p>
+
+      <h2>Core Components</h2>
+
+      <h3>Function Base Class</h3>
+      <p>The foundation uses a <code>Function</code> class with:</p>
+      <ul>
+        <li><strong>forward()</strong>: Computes output from NumPy arrays</li>
+        <li><strong>backward()</strong>: Calculates gradients using the Chain Rule</li>
+        <li><strong>__call__()</strong>: Wraps inputs, calls forward(), and returns a Tensor</li>
+      </ul>
+      <p>Each operation stores its parents and operation type to build a computation graph.</p>
+
+      <h3>Forward Pass Operations</h3>
+      <p>Simple operations include Add, Mul, Sub, and Div. Each implements <code>forward()</code> using NumPy operations. The <code>__call__</code> method ensures outputs are wrapped as Tensors with <code>requires_grad</code> properly set.</p>
+
+      <h3>Tensor Integration</h3>
+      <p>Operations are integrated into the Tensor class through operator overloading (<code>__add__</code>, <code>__mul__</code>, etc.), enabling intuitive syntax like <code>tensor_a + tensor_b</code>.</p>
+
+      <h2>Complex Operations</h2>
+
+      <h3>Shape-Changing Operations</h3>
+
+      <p><strong>Reshape</strong>: Restructures data layout. Backward pass reshapes gradients to match original input shape.</p>
+
+      <p><strong>Transpose</strong>: Flips axes. Backward uses <code>np.argsort()</code> to determine inverse axis permutation for N-dimensional arrays.</p>
+
+      <p><strong>Summation</strong>: Reduces along specified axes. Backward expands gradients back to original shape through reshaping and broadcasting.</p>
+
+      <p><strong>BroadcastTo</strong>: Stretches smaller tensors to larger shapes. Backward sums gradients along stretched dimensions.</p>
+
+      <h3>Matrix Operations</h3>
+
+      <p><strong>MatMul</strong>: For matrices A(M×N) and B(N×P) producing C(M×P):</p>
+      <ul>
+        <li>Gradient for A = out_grad · B<sup>T</sup></li>
+        <li>Gradient for B = A<sup>T</sup> · out_grad</li>
+      </ul>
+
+      <h3>Scalar Operations</h3>
+      <p>Operations between Tensors and scalars (e.g., <code>tensor + 1</code>) only propagate gradients to the Tensor input.</p>
+
+      <h2>Backward Pass Implementation</h2>
+
+      <p>The backward pass uses:</p>
+
+      <ol>
+        <li><strong>Topological sorting</strong> (depth-first search) to order nodes so parents aren't processed until all children complete</li>
+        <li><strong>Gradient accumulation</strong> using a dictionary where multiple paths to a node accumulate their gradient contributions</li>
+        <li><strong>Chain Rule application</strong>: Each Function's backward method receives upstream gradients and outputs parent gradients</li>
+      </ol>
+
+      <p>The process starts with <code>output.grad = 1</code> and walks backward through the computation graph, with each operation distributing responsibility proportionally to its inputs.</p>
+
+      <h2>Key Insight</h2>
+      <p>By breaking complex derivatives into local operations and chaining them together, the system avoids manually deriving gradients for entire architectures.</p>
+
+      <div class="nav">
+        <a href="tensor.html">← Tensor</a>
+        <a href="nn.html">Next: Neural Network Modules →</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/chapter2.html">zekcrates/chapter2</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

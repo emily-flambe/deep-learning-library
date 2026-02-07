@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 6: Data Handling — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li class="active"><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 6: Data Handling</h1>
+
+      <p>This chapter covers building data handling infrastructure for the deep learning library, focusing on separating data loading into two components: <code>Dataset</code> and <code>DataLoader</code> classes.</p>
+
+      <h2>5.1 Dataset Class</h2>
+
+      <p>The base <code>Dataset</code> class requires two core methods:</p>
+      <ul>
+        <li><code>__len__</code>: Returns the dataset size</li>
+        <li><code>__getitem__</code>: Retrieves a data sample at a given index</li>
+      </ul>
+
+      <pre><code>class Dataset:
+    def __init__(self, transforms=None):
+        self.transforms = transforms or []
+
+    def __len__(self):
+        raise NotImplementedError
+
+    def __getitem__(self, index):
+        raise NotImplementedError
+
+    def apply_transform(self, sample):
+        """Apply all transforms sequentially to a sample."""
+        for transform in self.transforms:
+            sample = transform(sample)
+        return sample</code></pre>
+
+      <h3>Transforms</h3>
+      <p>Transforms are functions that modify data samples during retrieval. Common use cases include:</p>
+      <ul>
+        <li><strong>Normalization</strong>: Converting pixel values from [0, 255] to [0, 1]</li>
+        <li><strong>Data augmentation</strong>: Random crops, flips, rotations</li>
+        <li><strong>Type conversion</strong>: Converting images to tensors</li>
+        <li><strong>Preprocessing</strong>: Tokenizing text, resizing images</li>
+      </ul>
+
+      <h2>5.2 MNIST Dataset</h2>
+
+      <div class="exercise">
+        <h3>Exercise 5.1: MNISTDataset Implementation</h3>
+        <p>Implement the <code>__getitem__</code> method for <code>MNISTDataset</code>:</p>
+        <ul>
+          <li>Load images and labels using <code>parse_mnist()</code></li>
+          <li>Convert data to numpy arrays</li>
+          <li>Reshape single images to (28, 28, 1) or batches to (batch_length, 28, 28, 1)</li>
+          <li>Apply any configured transforms</li>
+          <li>Return (image, label) tuples</li>
+        </ul>
+
+        <pre><code>class MNISTDataset(Dataset):
+    def __init__(self, images_path, labels_path, transforms=None):
+        super().__init__(transforms)
+        self.images, self.labels = parse_mnist(images_path, labels_path)
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, index):
+        # Get image and label at index
+        # Reshape image to (28, 28, 1)
+        # Apply transforms
+        # Return (image, label) tuple
+        # Your solution here
+        pass</code></pre>
+      </div>
+
+      <h2>5.3 DataLoader Class</h2>
+
+      <p>The <code>DataLoader</code> wraps a <code>Dataset</code> to provide batch iteration with optional shuffling.</p>
+
+      <h3>Key Features</h3>
+      <ul>
+        <li>Accepts a <code>Dataset</code> instance, batch size, and shuffle parameter</li>
+        <li><code>__iter__()</code>: Initializes iteration by creating indices and optionally shuffling them</li>
+        <li><code>__next__()</code>: Returns batches of stacked samples as <code>Tensor</code> objects</li>
+      </ul>
+
+      <div class="exercise">
+        <h3>Exercise 5.2: DataLoader Implementation</h3>
+        <pre><code>class DataLoader:
+    def __init__(self, dataset, batch_size=32, shuffle=False):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+
+    def __iter__(self):
+        self.indices = np.arange(len(self.dataset))
+        if self.shuffle:
+            np.random.shuffle(self.indices)
+        self.current = 0
+        return self
+
+    def __next__(self):
+        if self.current >= len(self.indices):
+            raise StopIteration
+
+        # Get batch indices
+        batch_indices = self.indices[self.current:self.current + self.batch_size]
+        self.current += self.batch_size
+
+        # Collect samples
+        # Use np.stack() to combine samples
+        # Wrap results in Tensor objects
+        # Return (batch_x, batch_y)
+        # Your solution here
+        pass
+
+    def __len__(self):
+        return (len(self.dataset) + self.batch_size - 1) // self.batch_size</code></pre>
+      </div>
+
+      <h3>Usage Example</h3>
+      <pre><code># Create dataset
+train_dataset = MNISTDataset(
+    'data/train-images-idx3-ubyte.gz',
+    'data/train-labels-idx1-ubyte.gz',
+    transforms=[normalize]
+)
+
+# Create dataloader
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+# Training loop
+for batch_x, batch_y in train_loader:
+    # batch_x shape: (64, 28, 28, 1)
+    # batch_y shape: (64,)
+    predictions = model(batch_x)
+    loss = loss_fn(predictions, batch_y)
+    ...</code></pre>
+
+      <div class="nav">
+        <a href="optim.html">&larr; Optimizer</a>
+        <a href="init.html">Next: Initialization &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/data.html">zekcrates/data</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

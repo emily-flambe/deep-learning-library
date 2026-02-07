@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 8: Model Persistence — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li class="active"><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 8: Model Persistence</h1>
+
+      <p>This chapter teaches how to save and load deep learning model weights. The key insight is that only model <strong>parameters</strong> need to be stored, not the entire architecture, since the code structure remains constant.</p>
+
+      <h2>Core Concepts</h2>
+
+      <h3>What to Save</h3>
+      <p>Only parameter values (weights and biases), not Tensor objects with their computational graphs. Store the raw numpy arrays via <code>.data</code>.</p>
+
+      <h3>Model Structure</h3>
+      <p>Models contain three types of objects:</p>
+      <ul>
+        <li>Tensor/Parameter objects</li>
+        <li>Module objects (containing Tensors/Parameters)</li>
+        <li>Sequential/List/Tuple containers</li>
+      </ul>
+
+      <h2>7.1 Save Model (state_dict)</h2>
+
+      <p>The <code>state_dict()</code> method returns a dictionary where:</p>
+      <ul>
+        <li><strong>Keys</strong>: Flattened paths using dot notation (e.g., <code>"layer1.weight"</code>, <code>"layers.0.bias"</code>)</li>
+        <li><strong>Values</strong>: Raw numpy arrays from parameters</li>
+      </ul>
+
+      <div class="exercise">
+        <h3>Exercise 7.1: state_dict Implementation</h3>
+        <p>Implementation requires handling:</p>
+        <ol>
+          <li><strong>Parameters</strong>: Store <code>value.data</code></li>
+          <li><strong>Modules</strong>: Recursively call <code>state_dict()</code> and prefix keys</li>
+          <li><strong>Lists/Tuples</strong>: Iterate with indices, creating keys like <code>"key.0.childkey"</code></li>
+        </ol>
+
+        <pre><code>def state_dict(self):
+    """
+    Returns a dictionary containing all parameters.
+
+    Keys are dot-separated paths:
+        - "weight" for direct parameters
+        - "layer1.weight" for nested modules
+        - "layers.0.weight" for list containers
+
+    Values are raw numpy arrays.
+    """
+    result = {}
+    for name, value in self.__dict__.items():
+        if name.startswith('_'):
+            continue
+
+        if isinstance(value, Parameter):
+            result[name] = value.data
+        elif isinstance(value, Module):
+            # Recursively get state_dict and prefix keys
+            # Your solution here
+            pass
+        elif isinstance(value, (list, tuple)):
+            # Iterate with indices
+            # Your solution here
+            pass
+
+    return result</code></pre>
+      </div>
+
+      <h3>save() Method</h3>
+      <p>The save method serializes the state dictionary to a file using Python's serialization module.</p>
+      <pre><code>def save(self, path):
+    """Save model parameters to a file."""
+    import serialization_module  # use standard Python serialization
+    with open(path, 'wb') as f:
+        serialization_module.dump(self.state_dict(), f)</code></pre>
+
+      <h2>7.2 Load Model (load_state_dict)</h2>
+
+      <p>Loading requires matching architecture. The process:</p>
+      <ol>
+        <li><strong>Parameters</strong>: Validate shape match, assign <code>value.data = state_dict[key]</code></li>
+        <li><strong>Modules</strong>: Filter state_dict by prefix, remove prefix, recurse</li>
+        <li><strong>Lists/Tuples</strong>: Filter by indexed prefix, remove it, recurse</li>
+      </ol>
+
+      <div class="exercise">
+        <h3>Exercise 7.2: load_state_dict Implementation</h3>
+        <pre><code>def load_state_dict(self, state_dict):
+    """
+    Load parameters from a state dictionary.
+
+    Args:
+        state_dict: Dictionary with parameter paths as keys
+                   and numpy arrays as values
+    """
+    for name, value in self.__dict__.items():
+        if name.startswith('_'):
+            continue
+
+        if isinstance(value, Parameter):
+            if name in state_dict:
+                # Validate shape and assign
+                assert value.shape == state_dict[name].shape
+                value.data = state_dict[name]
+        elif isinstance(value, Module):
+            # Filter state_dict by prefix, remove prefix, recurse
+            # Your solution here
+            pass
+        elif isinstance(value, (list, tuple)):
+            # Filter by indexed prefix, remove it, recurse
+            # Your solution here
+            pass</code></pre>
+      </div>
+
+      <h3>load() Method</h3>
+      <pre><code>def load(self, path):
+    """Load model parameters from a file."""
+    import serialization_module
+    with open(path, 'rb') as f:
+        state_dict = serialization_module.load(f)
+    self.load_state_dict(state_dict)</code></pre>
+
+      <h2>Usage Example</h2>
+      <pre><code># Save trained model
+model.save('model_weights.pkl')
+
+# Later, load into a new model instance
+model = MyModel()  # Must have same architecture
+model.load('model_weights.pkl')</code></pre>
+
+      <h2>Important Caveat</h2>
+      <p>Our current implementation saves model weights, which is perfect for <strong>Inference</strong> or <strong>Fine-Tuning</strong>. However, if you use this to pause and resume the same training run, be aware: We are not saving the Optimizer state, meaning momentum and gradient history are not preserved.</p>
+
+      <div class="nav">
+        <a href="init.html">&larr; Initialization</a>
+        <a href="trainer.html">Next: Trainer &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/model_saving.html">zekcrates/model_saving</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

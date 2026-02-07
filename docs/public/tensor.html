@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 2: Tensor — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li class="active"><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 2: Tensor</h1>
+
+      <h2>2.1 Tensor Fundamentals</h2>
+
+      <h3>Arrays</h3>
+      <p>An array is a collection of elements identified by indices or keys. Arrays are implemented through NumPy's high-performance N-dimensional array object.</p>
+
+      <h3>NumPy Arrays</h3>
+      <p>NumPy arrays provide fixed memory blocks, vectorized operations, and exceptional speed. They serve as the raw material that tensors wrap.</p>
+
+      <h3>Tensors</h3>
+      <p>A tensor is more than just a multi-dimensional array; it is a container for data that remembers its own history. Tensors hold arrays in a structured way, enabling efficient operations and computation graph tracking.</p>
+
+      <h3>Tensor Properties</h3>
+      <p>A tensor instance tracks:</p>
+      <ul>
+        <li><strong>data</strong>: NumPy array containing values</li>
+        <li><strong>dtype</strong>: Data type (default: float32)</li>
+        <li><strong>grad</strong>: Gradients from backpropagation</li>
+        <li><strong>requires_grad</strong>: Boolean enabling/disabling gradient tracking</li>
+        <li><strong>_op</strong>: Mathematical operation that created this tensor</li>
+        <li><strong>_inputs</strong>: Input tensors used in creation</li>
+      </ul>
+
+      <h3>Computation Graph</h3>
+      <p>A directed graph representing:</p>
+      <ul>
+        <li>Tensor values as nodes</li>
+        <li>Operations as connecting edges</li>
+        <li>Data flow from inputs through operations to outputs</li>
+      </ul>
+
+      <div class="exercise">
+        <h3>Exercise 2.1: Tensor Class Implementation</h3>
+        <p>What are the different types of data one can pass when creating Tensor?</p>
+        <ul>
+          <li>A normal List/Scalar</li>
+          <li>NDArray</li>
+          <li>A Tensor</li>
+        </ul>
+        <p>So we need to handle these cases in the initialization. It doesn't matter what the input data is, we want to always make sure <code>self.data</code> is always <code>NDArray</code> (np.ndarray).</p>
+
+        <pre><code>import numpy as np
+NDArray = np.ndarray
+
+class Tensor:
+    def __init__(self, data, *, device=None, dtype="float32",
+         requires_grad=True):
+        """
+        Create a new tensor.
+        Args:
+            data: Array-like data (list, numpy array, or another Tensor)
+            device: Device placement (currently ignored, CPU only)
+            dtype: Data type for the array
+            requires_grad: Whether to track gradients for this tensor
+
+        Design decision: requires_grad defaults to True (unlike PyTorch)
+         (Will change later to false, when introducing Parameter)
+        """
+        # if data isinstance of Tensor
+
+        # if data instance of np.ndarray
+
+        # if data instance of List/Scalar
+
+        #Your solution here.</code></pre>
+
+        <p>Note: <code>_op</code> and <code>_inputs</code> must also be initialized.</p>
+      </div>
+
+      <h2>2.2 Data Operations</h2>
+
+      <h3>String Representations</h3>
+      <pre><code>def __repr__(self):
+    """
+    Detailed representation showing data and gradient tracking.
+    Example:
+        >>> x = Tensor([1, 2, 3])
+        >>> print(repr(x))
+        Tensor([1. 2. 3.], requires_grad=True)
+    """
+    return f"Tensor({self.data}, requires_grad={self.requires_grad})"
+
+def __str__(self):
+    """
+    Simple string representation (just the data).
+    Example:
+        >>> x = Tensor([1, 2, 3])
+        >>> print(x)
+        [1. 2. 3.]
+    """
+    return str(self.data)</code></pre>
+
+      <h3>Basic Properties</h3>
+      <pre><code>@property
+def shape(self):
+    return self.data.shape
+
+@property
+def dtype(self):
+    return self.data.dtype
+
+@property
+def ndim(self):
+    return self.data.ndim
+
+@property
+def size(self):
+    return self.data.size
+
+@property
+def device(self):
+    return self._device</code></pre>
+
+      <h3>Methods</h3>
+
+      <p><strong>numpy()</strong>: Extracts raw NumPy data, returning a copy disconnected from the computation graph.</p>
+
+      <p><strong>detach()</strong>: Creates a new Tensor with identical data but <code>requires_grad=False</code>, excluding it from gradient computation during backpropagation.</p>
+
+      <p>Both methods are essential for inspection and manipulation without affecting the computational graph.</p>
+
+      <pre><code>def backward(self, out_grad=None):
+    # we will do this in next chapter!</code></pre>
+
+      <div class="nav">
+        <a href="intro.html">← Introduction</a>
+        <a href="autograd.html">Next: Automatic Differentiation →</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/chapter1.html">zekcrates/chapter1</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

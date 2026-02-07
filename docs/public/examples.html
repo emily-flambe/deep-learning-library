@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 12: Examples — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li class="active"><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 12: Examples</h1>
+
+      <p>This page showcases progressively advanced deep learning implementations using the babygrad library.</p>
+
+      <h2>Example 1: Simple MNIST</h2>
+      <p>A basic two-layer neural network with manual gradient updates. Parses gzipped MNIST data and trains on batches, achieving ~96% accuracy on individual batches.</p>
+
+      <pre><code>import numpy as np
+from babygrad import Tensor
+from babygrad.data import parse_mnist
+
+# Load data
+X_train, y_train = parse_mnist('train-images.gz', 'train-labels.gz')
+X_train = X_train.reshape(-1, 784) / 255.0
+
+# Initialize weights
+W1 = Tensor(np.random.randn(784, 128) * 0.01)
+b1 = Tensor(np.zeros(128))
+W2 = Tensor(np.random.randn(128, 10) * 0.01)
+b2 = Tensor(np.zeros(10))
+
+lr = 0.1
+batch_size = 64
+
+for i in range(1000):
+    # Get batch
+    idx = np.random.randint(0, len(X_train), batch_size)
+    x = Tensor(X_train[idx])
+    y = y_train[idx]
+
+    # Forward pass
+    h = (x @ W1 + b1).relu()
+    out = h @ W2 + b2
+
+    # Compute loss (softmax cross-entropy)
+    loss = out.softmax_loss(y)
+
+    # Backward pass
+    loss.backward()
+
+    # Update weights
+    W1.data -= lr * W1.grad
+    b1.data -= lr * b1.grad
+    W2.data -= lr * W2.grad
+    b2.data -= lr * b2.grad
+
+    # Zero gradients
+    W1.grad = None
+    b1.grad = None
+    W2.grad = None
+    b2.grad = None
+
+    if i % 100 == 0:
+        print(f"Step {i}, Loss: {loss.data:.4f}")</code></pre>
+
+      <h2>Example 2: Decent MNIST</h2>
+      <p>Introduces higher-level abstractions including the Adam optimizer, DataLoader, and modular components like BatchNorm and Dropout.</p>
+
+      <pre><code>from babygrad import nn, optim
+from babygrad.data import MNISTDataset, DataLoader
+
+# Define model with BatchNorm and Dropout
+model = nn.Sequential(
+    nn.Flatten(),
+    nn.Linear(784, 256),
+    nn.BatchNorm1d(256),
+    nn.ReLU(),
+    nn.Dropout(0.2),
+    nn.Linear(256, 128),
+    nn.BatchNorm1d(128),
+    nn.ReLU(),
+    nn.Dropout(0.2),
+    nn.Linear(128, 10)
+)
+
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+loss_fn = nn.SoftmaxLoss()
+
+train_dataset = MNISTDataset('train-images.gz', 'train-labels.gz')
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+for epoch in range(10):
+    model.train()
+    for x, y in train_loader:
+        optimizer.zero_grad()
+        pred = model(x)
+        loss = loss_fn(pred, y)
+        loss.backward()
+        optimizer.step()
+    print(f"Epoch {epoch+1} complete")</code></pre>
+
+      <h2>Example 3: Better MNIST</h2>
+      <p>Streamlines the previous approach by introducing a Trainer class that handles the training loop automatically.</p>
+
+      <pre><code>from babygrad import nn, optim
+from babygrad.data import MNISTDataset, DataLoader
+from babygrad.trainer import Trainer
+
+model = nn.Sequential(
+    nn.Flatten(),
+    nn.Linear(784, 256),
+    nn.ReLU(),
+    nn.Linear(256, 10)
+)
+
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+loss_fn = nn.SoftmaxLoss()
+
+train_loader = DataLoader(MNISTDataset('train-images.gz', 'train-labels.gz'),
+                          batch_size=64, shuffle=True)
+test_loader = DataLoader(MNISTDataset('test-images.gz', 'test-labels.gz'),
+                         batch_size=64)
+
+trainer = Trainer(model, optimizer, loss_fn, train_loader, val_loader=test_loader)
+trainer.fit(epochs=10)</code></pre>
+
+      <h2>Example 4: Simple CNN</h2>
+      <p>Applies convolutional layers to MNIST. Note the data format conversion from NHWC to NCHW. Achieves approximately 98% validation accuracy.</p>
+
+      <pre><code>from babygrad import nn, optim
+from babygrad.trainer import Trainer
+
+model = nn.Sequential(
+    # Input: (N, 1, 28, 28)
+    nn.Conv2d(1, 32, kernel_size=3, padding=1),
+    nn.ReLU(),
+    nn.MaxPool2d(2),  # (N, 32, 14, 14)
+
+    nn.Conv2d(32, 64, kernel_size=3, padding=1),
+    nn.ReLU(),
+    nn.MaxPool2d(2),  # (N, 64, 7, 7)
+
+    nn.Flatten(),     # (N, 64*7*7)
+    nn.Linear(64*7*7, 128),
+    nn.ReLU(),
+    nn.Linear(128, 10)
+)
+
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+loss_fn = nn.SoftmaxLoss()
+
+# Note: Ensure data is in NCHW format
+trainer = Trainer(model, optimizer, loss_fn, train_loader, val_loader=test_loader)
+trainer.fit(epochs=5)</code></pre>
+
+      <h2>Example 5: Better CNN</h2>
+      <p>Stacks additional convolutional blocks hierarchically. Validation improvements plateau around 98%.</p>
+
+      <pre><code>model = nn.Sequential(
+    nn.Conv2d(1, 32, 3, padding=1),
+    nn.BatchNorm2d(32),
+    nn.ReLU(),
+    nn.Conv2d(32, 32, 3, padding=1),
+    nn.BatchNorm2d(32),
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+
+    nn.Conv2d(32, 64, 3, padding=1),
+    nn.BatchNorm2d(64),
+    nn.ReLU(),
+    nn.Conv2d(64, 64, 3, padding=1),
+    nn.BatchNorm2d(64),
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+
+    nn.Flatten(),
+    nn.Linear(64*7*7, 256),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(256, 10)
+)</code></pre>
+
+      <h2>Example 6: Simple CIFAR10</h2>
+      <p>Introduces a new dataset with color images. Requires implementing CIFAR10Dataset class with data loading from binary files. Note that validation accuracy may not improve much without augmentation.</p>
+
+      <pre><code>class CIFAR10Dataset(Dataset):
+    def __init__(self, data_dir, train=True, transforms=None):
+        super().__init__(transforms)
+        import data_loader  # use appropriate data loading
+
+        if train:
+            # Load training batches
+            images, labels = [], []
+            for i in range(1, 6):
+                with open(f"{data_dir}/data_batch_{i}", 'rb') as f:
+                    batch = data_loader.load(f, encoding='bytes')
+                    images.append(batch[b'data'])
+                    labels.extend(batch[b'labels'])
+            self.images = np.vstack(images).reshape(-1, 3, 32, 32)
+            self.labels = np.array(labels)
+        else:
+            with open(f"{data_dir}/test_batch", 'rb') as f:
+                batch = data_loader.load(f, encoding='bytes')
+                self.images = batch[b'data'].reshape(-1, 3, 32, 32)
+                self.labels = np.array(batch[b'labels'])
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        img = self.images[idx] / 255.0
+        return self.apply_transform(img), self.labels[idx]</code></pre>
+
+      <h2>Example 7: Simple ResNet</h2>
+      <p>Implements residual connections for CIFAR10. Adding data transformations like RandomFlipHorizontal and RandomCrop significantly improves performance, pushing validation accuracy past 70%.</p>
+
+      <pre><code>class ResBlock(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.conv1 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.bn1 = nn.BatchNorm2d(channels)
+        self.conv2 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.bn2 = nn.BatchNorm2d(channels)
+
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x).relu()
+        out = self.bn1(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        return (out + residual).relu()
+
+# Data augmentation transforms
+transforms = [
+    RandomFlipHorizontal(),
+    RandomCrop(32, padding=4),
+    Normalize(mean=[0.4914, 0.4822, 0.4465],
+              std=[0.2023, 0.1994, 0.2010])
+]
+
+train_dataset = CIFAR10Dataset('data/cifar10', train=True, transforms=transforms)
+train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+
+# Model with residual blocks
+model = nn.Sequential(
+    nn.Conv2d(3, 64, 3, padding=1),
+    nn.BatchNorm2d(64),
+    nn.ReLU(),
+    ResBlock(64),
+    ResBlock(64),
+    nn.MaxPool2d(2),
+    # ... more blocks
+    nn.Flatten(),
+    nn.Linear(64*8*8, 10)
+)</code></pre>
+
+      <div class="nav">
+        <a href="cnn.html">&larr; Convolutional NN</a>
+        <a href="solutions.html">Next: Solutions &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/examples.html">zekcrates/examples</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

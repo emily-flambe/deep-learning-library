@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 7: Initialization — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li class="active"><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 7: Initialization</h1>
+
+      <p>This chapter teaches weight initialization techniques for deep learning libraries. The implementations are housed in <code>babygrad/init.py</code>.</p>
+
+      <h2>Core Problems</h2>
+
+      <p>Proper weight initialization addresses three critical issues:</p>
+
+      <h3>1. Symmetry Problem</h3>
+      <p>If all weights start with the same value, every neuron in a layer learns the exact same feature. Random initialization breaks this symmetry.</p>
+
+      <h3>2. Vanishing Gradients</h3>
+      <p>When weights are too small, signals diminish through layers, preventing meaningful updates in early layers.</p>
+
+      <h3>3. Exploding Gradients</h3>
+      <p>Oversized weights cause signals to grow exponentially, producing unstable updates and NaN values.</p>
+
+      <h2>Key Concepts</h2>
+
+      <h3>Fan-in and Fan-out</h3>
+      <p>For a Linear layer:</p>
+      <ul>
+        <li><strong>fan_in</strong>: Number of input features</li>
+        <li><strong>fan_out</strong>: Number of output features</li>
+      </ul>
+      <p>Example: <code>Linear(784, 256)</code> has fan_in=784, fan_out=256.</p>
+
+      <h2>Xavier Initialization</h2>
+      <p>Best suited for tanh and sigmoid activations. Balances variance across layers by considering both fan_in and fan_out.</p>
+
+      <div class="exercise">
+        <h3>Exercise 6.1: Xavier Uniform</h3>
+        <p>Use the formula <code>a = gain * sqrt(6 / (fan_in + fan_out))</code> to draw from uniform distribution U[-a, a].</p>
+        <pre><code>def xavier_uniform(fan_in, fan_out, gain=1.0):
+    """
+    Xavier uniform initialization.
+
+    Args:
+        fan_in: Number of input features
+        fan_out: Number of output features
+        gain: Scaling factor (default 1.0)
+
+    Returns:
+        Tensor with shape (fan_in, fan_out)
+    """
+    a = gain * np.sqrt(6.0 / (fan_in + fan_out))
+    # Use Tensor.rand() which returns values in [0, 1)
+    # Scale to [-a, a]
+    # Your solution here
+    pass</code></pre>
+      </div>
+
+      <div class="exercise">
+        <h3>Exercise 6.2: Xavier Normal</h3>
+        <p>Apply standard deviation <code>std = sqrt(2 / (fan_in + fan_out))</code> with <code>Tensor.randn()</code>.</p>
+        <pre><code>def xavier_normal(fan_in, fan_out, gain=1.0):
+    """
+    Xavier normal initialization.
+
+    Args:
+        fan_in: Number of input features
+        fan_out: Number of output features
+        gain: Scaling factor (default 1.0)
+
+    Returns:
+        Tensor with shape (fan_in, fan_out)
+    """
+    std = gain * np.sqrt(2.0 / (fan_in + fan_out))
+    # Use Tensor.randn() which returns standard normal values
+    # Scale by std
+    # Your solution here
+    pass</code></pre>
+      </div>
+
+      <h2>Kaiming Initialization</h2>
+      <p>Optimized for ReLU activations. Only considers fan_in because ReLU zeros out negative values.</p>
+
+      <div class="exercise">
+        <h3>Exercise 6.3: Kaiming Uniform</h3>
+        <p>For ReLU activation, use <code>a = sqrt(6 / fan_in)</code>.</p>
+        <pre><code>def kaiming_uniform(fan_in, fan_out, gain=np.sqrt(2)):
+    """
+    Kaiming uniform initialization (for ReLU).
+
+    Args:
+        fan_in: Number of input features
+        fan_out: Number of output features
+        gain: Scaling factor (default sqrt(2) for ReLU)
+
+    Returns:
+        Tensor with shape (fan_in, fan_out)
+    """
+    a = gain * np.sqrt(3.0 / fan_in)
+    # Use Tensor.rand() and scale to [-a, a]
+    # Your solution here
+    pass</code></pre>
+      </div>
+
+      <div class="exercise">
+        <h3>Exercise 6.4: Kaiming Normal</h3>
+        <p>Apply <code>std = sqrt(2 / fan_in)</code> using <code>Tensor.randn()</code>.</p>
+        <pre><code>def kaiming_normal(fan_in, fan_out, gain=np.sqrt(2)):
+    """
+    Kaiming normal initialization (for ReLU).
+
+    Args:
+        fan_in: Number of input features
+        fan_out: Number of output features
+        gain: Scaling factor (default sqrt(2) for ReLU)
+
+    Returns:
+        Tensor with shape (fan_in, fan_out)
+    """
+    std = gain / np.sqrt(fan_in)
+    # Use Tensor.randn() and scale by std
+    # Your solution here
+    pass</code></pre>
+      </div>
+
+      <h2>Summary</h2>
+      <table>
+        <tr>
+          <th>Method</th>
+          <th>Best For</th>
+          <th>Key Formula</th>
+        </tr>
+        <tr>
+          <td>Xavier Uniform</td>
+          <td>tanh, sigmoid</td>
+          <td>a = sqrt(6 / (fan_in + fan_out))</td>
+        </tr>
+        <tr>
+          <td>Xavier Normal</td>
+          <td>tanh, sigmoid</td>
+          <td>std = sqrt(2 / (fan_in + fan_out))</td>
+        </tr>
+        <tr>
+          <td>Kaiming Uniform</td>
+          <td>ReLU</td>
+          <td>a = sqrt(6 / fan_in)</td>
+        </tr>
+        <tr>
+          <td>Kaiming Normal</td>
+          <td>ReLU</td>
+          <td>std = sqrt(2 / fan_in)</td>
+        </tr>
+      </table>
+
+      <div class="nav">
+        <a href="data.html">&larr; Data Handling</a>
+        <a href="saving.html">Next: Model Persistence &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/initialization.html">zekcrates/initialization</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 5: Optimizer — babygrad</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2><a href="index.html">babygrad</a></h2>
+      <ul>
+        <li><a href="index.html">Preface</a></li>
+        <li><a href="intro.html">1. Introduction</a></li>
+        <li><a href="tensor.html">2. Tensor</a></li>
+        <li><a href="autograd.html">3. Automatic Differentiation</a></li>
+        <li><a href="nn.html">4. nn</a></li>
+        <li class="active"><a href="optim.html">5. Optimizer</a></li>
+        <li><a href="data.html">6. Data Handling</a></li>
+        <li><a href="init.html">7. Initialization</a></li>
+        <li><a href="saving.html">8. Model Persistence</a></li>
+        <li><a href="trainer.html">9. Trainer</a></li>
+        <li><a href="cnn.html">10. Convolutional NN</a></li>
+        <li><a href="solutions.html">11. Solutions</a></li>
+        <li><a href="examples.html">12. Examples</a></li>
+        <li><a href="conclusion.html">13. Conclusion</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>Chapter 5: Optimizer</h1>
+
+      <p>While we can create models, compute loss, and calculate gradients, we need optimizers to actually update model parameters. The basic weight update formula is:</p>
+
+      <pre><code>p.data = p.data - lr * p.grad</code></pre>
+
+      <p>This subtracts the gradient (scaled by learning rate) from weights, moving opposite to the error direction.</p>
+
+      <h2>Base Optimizer Class</h2>
+
+      <pre><code>class Optimizer:
+    """
+    Base class for all optimizers.
+
+    Example of a subclass:
+        class SGD(Optimizer):
+            def __init__(self, params, lr=0.01):
+                super().__init__(params)
+                self.lr = lr
+            def step(self):
+                pass
+    """
+    def __init__(self, params):
+        """
+        Args:
+            params (list[Parameter])
+        """
+        self.params = params
+
+    def zero_grad(self):
+        """
+        Sets the gradients of all parameters to None.
+        """
+        for p in self.params:
+            p.grad = None
+
+    def step(self):
+        """
+        Performs a single optimization step (e.g., updating parameters).
+        """
+        raise NotImplementedError</code></pre>
+
+      <p><strong>Key Design Decision:</strong> We clear gradients between iterations because old gradients were specific to the old weights. Accumulating them would confuse the model.</p>
+
+      <h2>4.1 SGD (Stochastic Gradient Descent)</h2>
+
+      <p>The <strong>learning rate</strong> controls how big a step the model takes when adjusting its weights.</p>
+
+      <p>The SGD formula is straightforward:</p>
+      <pre><code>updated_weights = current_weights - learning_rate * gradients</code></pre>
+
+      <div class="exercise">
+        <h3>Exercise 4.1: SGD Implementation</h3>
+        <pre><code>class SGD(Optimizer):
+    """
+    This optimizer updates parameters by taking a step in the direction
+    of the negative gradient, multiplied by the learning rate.
+    """
+    def __init__(self, params, lr=0.01):
+        super().__init__(params)
+        self.lr = lr
+
+    def step(self):
+        """
+        Performs a single optimization step.
+        """
+        # Note: The update is performed on the .data attribute
+        # We don't want `step` to be part of the computation graph.
+        # Check if param.grad is None or not.
+        # Your solution here
+        pass</code></pre>
+      </div>
+
+      <h3>Usage Pattern</h3>
+      <pre><code>optimizer.zero_grad()
+loss.backward()
+optimizer.step()</code></pre>
+
+      <h2>4.2 Adam</h2>
+
+      <h3>Motivation</h3>
+      <p>Adam addresses SGD's limitations: not all parameters need identical learning rates, and optimizer history matters. The approach considers:</p>
+      <ul>
+        <li>Parameter importance variation</li>
+        <li>Gradient direction consistency</li>
+        <li>Magnitude stability</li>
+      </ul>
+
+      <h3>Core Concepts</h3>
+      <p>Adam tracks two moments:</p>
+      <ul>
+        <li><strong>First Moment (Mean)</strong>: Average of past gradients</li>
+        <li><strong>Second Moment (Variance)</strong>: Average of squared gradients</li>
+      </ul>
+      <p>The squared gradients indicate magnitude regardless of direction.</p>
+
+      <h3>Adam Formulas</h3>
+
+      <p><strong>Moving average calculations:</strong></p>
+      <pre><code>moving_average_gradient = beta1 * moving_average_gradient + (1 - beta1) * current_gradient
+
+moving_average_squared_gradient = beta2 * moving_average_squared_gradient + (1 - beta2) * current_gradient^2</code></pre>
+
+      <p><strong>Bias correction:</strong></p>
+      <pre><code>corrected_gradient = moving_average_gradient / (1 - beta1^step)
+
+corrected_squared_gradient = moving_average_squared_gradient / (1 - beta2^step)</code></pre>
+
+      <p><strong>Weight update:</strong></p>
+      <pre><code>updated_weights = current_weights - (learning_rate * corrected_gradient) / (sqrt(corrected_squared_gradient) + epsilon)</code></pre>
+
+      <h3>Parameter Details</h3>
+      <ul>
+        <li><strong>beta1</strong> (default 0.9): Importance weight for recent gradient direction</li>
+        <li><strong>beta2</strong> (default 0.999): Importance weight for magnitude stability</li>
+        <li><strong>epsilon</strong>: Small constant preventing division by zero</li>
+      </ul>
+
+      <div class="exercise">
+        <h3>Exercise 4.2: Adam Implementation</h3>
+        <pre><code>class Adam(Optimizer):
+    """
+    Implements the Adam optimization algorithm.
+    """
+    def __init__(
+        self,
+        params,
+        lr=0.001,
+        beta1=0.9,
+        beta2=0.999,
+        eps=1e-8,
+    ):
+        """
+        Args:
+            params (list[Tensor])
+            lr (float, optional): learning rate
+            beta1 (float, optional): exponential decay rate for first moment
+            beta2 (float, optional): exponential decay rate for second moment
+            eps (float, optional): small constant for numerical stability
+        """
+        super().__init__(params)
+        self.lr = lr
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        self.t = 0
+
+        self.m = {}  # First moment estimates
+        self.v = {}  # Second moment estimates
+
+    def step(self):
+        self.t += 1
+        for param in self.params:
+            if param.grad is None:
+                continue
+            grad = param.grad
+
+            # Update biased first moment estimate
+            mt = self.m.get(param, 0) * self.beta1 + (1 - self.beta1) * grad
+            self.m[param] = mt
+
+            # Update biased second moment estimate
+            vt = self.v.get(param, 0) * self.beta2 + (1 - self.beta2) * (grad ** 2)
+            self.v[param] = vt
+
+            # Your solution: Do inplace update: param.data -= ....</code></pre>
+      </div>
+
+      <div class="nav">
+        <a href="nn.html">&larr; Neural Network Modules</a>
+        <a href="data.html">Next: Data Handling &rarr;</a>
+      </div>
+
+      <div class="attribution">
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/optim.html">zekcrates/optim</a></p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
