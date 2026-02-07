@@ -31,136 +31,192 @@
     <main class="content">
       <h1>Chapter 2: Tensor</h1>
 
-      <h2>2.1 Tensor Fundamentals</h2>
-
-      <h3>Arrays</h3>
-      <p>An array is a collection of elements identified by indices or keys. Arrays are implemented through NumPy's high-performance N-dimensional array object.</p>
-
-      <h3>NumPy Arrays</h3>
-      <p>NumPy arrays provide fixed memory blocks, vectorized operations, and exceptional speed. They serve as the raw material that tensors wrap.</p>
-
-      <h3>Tensors</h3>
-      <p>A tensor is more than just a multi-dimensional array; it is a container for data that remembers its own history. Tensors hold arrays in a structured way, enabling efficient operations and computation graph tracking.</p>
-
-      <h3>Tensor Properties</h3>
-      <p>A tensor instance tracks:</p>
-      <ul>
-        <li><strong>data</strong>: NumPy array containing values</li>
-        <li><strong>dtype</strong>: Data type (default: float32)</li>
-        <li><strong>grad</strong>: Gradients from backpropagation</li>
-        <li><strong>requires_grad</strong>: Boolean enabling/disabling gradient tracking</li>
-        <li><strong>_op</strong>: Mathematical operation that created this tensor</li>
-        <li><strong>_inputs</strong>: Input tensors used in creation</li>
-      </ul>
-
-      <h3>Computation Graph</h3>
-      <p>A directed graph representing:</p>
-      <ul>
-        <li>Tensor values as nodes</li>
-        <li>Operations as connecting edges</li>
-        <li>Data flow from inputs through operations to outputs</li>
-      </ul>
-
-      <div class="exercise">
-        <h3>Exercise 2.1: Tensor Class Implementation</h3>
-        <p>What are the different types of data one can pass when creating Tensor?</p>
-        <ul>
-          <li>A normal List/Scalar</li>
-          <li>NDArray</li>
-          <li>A Tensor</li>
-        </ul>
-        <p>So we need to handle these cases in the initialization. It doesn't matter what the input data is, we want to always make sure <code>self.data</code> is always <code>NDArray</code> (np.ndarray).</p>
-
-        <pre><code>import numpy as np
-NDArray = np.ndarray
-
-class Tensor:
-    def __init__(self, data, *, device=None, dtype="float32",
-         requires_grad=True):
-        """
-        Create a new tensor.
-        Args:
-            data: Array-like data (list, numpy array, or another Tensor)
-            device: Device placement (currently ignored, CPU only)
-            dtype: Data type for the array
-            requires_grad: Whether to track gradients for this tensor
-
-        Design decision: requires_grad defaults to True (unlike PyTorch)
-         (Will change later to false, when introducing Parameter)
-        """
-        # if data isinstance of Tensor
-
-        # if data instance of np.ndarray
-
-        # if data instance of List/Scalar
-
-        #Your solution here.</code></pre>
-
-        <p>Note: <code>_op</code> and <code>_inputs</code> must also be initialized.</p>
+      <div class="revised">
+        <strong>✓ Revised for clarity.</strong> This chapter has been rewritten with more detailed explanations.
       </div>
 
-      <h2>2.2 Data Operations</h2>
+      <h2>What is a Tensor, and why do we need one?</h2>
 
-      <h3>String Representations</h3>
-      <pre><code>def __repr__(self):
-    """
-    Detailed representation showing data and gradient tracking.
-    Example:
-        >>> x = Tensor([1, 2, 3])
-        >>> print(repr(x))
-        Tensor([1. 2. 3.], requires_grad=True)
-    """
-    return f"Tensor({self.data}, requires_grad={self.requires_grad})"
+      <p>A <strong>numpy array</strong> is just data—numbers sitting in memory. It doesn't know where it came from or what created it.</p>
 
-def __str__(self):
-    """
-    Simple string representation (just the data).
-    Example:
-        >>> x = Tensor([1, 2, 3])
-        >>> print(x)
-        [1. 2. 3.]
-    """
-    return str(self.data)</code></pre>
+      <p>A <strong>Tensor</strong> is a wrapper around a numpy array that also remembers:</p>
+      <ul>
+        <li>Where did this data come from?</li>
+        <li>What math operation created it?</li>
+        <li>Should we track gradients for backpropagation?</li>
+      </ul>
 
-      <h3>Basic Properties</h3>
+      <p>Think of it like a package vs. a <em>tracked</em> package. A numpy array is the item. A Tensor is the item plus its shipping history—where it's been, what happened to it along the way.</p>
+
+      <p>This "history" is called the <strong>computation graph</strong>, and it's what makes automatic differentiation possible (which we'll cover in Chapter 3).</p>
+
+      <h2>Tensor Attributes</h2>
+
+      <p>Every Tensor stores these attributes:</p>
+
+      <table>
+        <tr><th>Attribute</th><th>What it is</th></tr>
+        <tr><td><code>data</code></td><td>The actual numbers (always a numpy array)</td></tr>
+        <tr><td><code>dtype</code></td><td>Data type, like "float32" or "int64"</td></tr>
+        <tr><td><code>grad</code></td><td>Gradients computed during backpropagation (starts as None)</td></tr>
+        <tr><td><code>requires_grad</code></td><td>Should we track this tensor for gradient computation?</td></tr>
+        <tr><td><code>_op</code></td><td>What operation created this tensor (None for tensors you create directly)</td></tr>
+        <tr><td><code>_inputs</code></td><td>What tensors were used to create this one (empty list for tensors you create directly)</td></tr>
+      </table>
+
+      <p>The last two (<code>_op</code> and <code>_inputs</code>) are how we build the computation graph. When you do <code>c = a + b</code>, the resulting tensor <code>c</code> will have <code>_op = "add"</code> and <code>_inputs = [a, b]</code>. That's how it "remembers" its history.</p>
+
+      <h2>Exercise 2.1: The <code>__init__</code> method</h2>
+
+      <h3>The Problem</h3>
+
+      <p>Users will create Tensors in different ways:</p>
+
+      <pre><code>Tensor([1, 2, 3])                    # from a Python list
+Tensor(5)                            # from a single number
+Tensor(np.array([1, 2, 3]))          # from a numpy array
+Tensor(some_existing_tensor)         # from another Tensor</code></pre>
+
+      <p>Your job: make all of these work. Internally, <code>self.data</code> should <strong>always</strong> end up as a numpy array—no matter what gets passed in.</p>
+
+      <h3>Why does this matter?</h3>
+
+      <p>The rest of your library assumes <code>self.data</code> is a numpy array. If it's sometimes a list, sometimes a Tensor, sometimes an array—everything breaks. So <code>__init__</code> normalizes the input into a consistent format.</p>
+
+      <h3>Thinking through it</h3>
+
+      <p>You need to handle three cases:</p>
+
+      <table>
+        <tr><th>What's passed in</th><th>What to do</th><th>Why</th></tr>
+        <tr><td>A Tensor</td><td>Extract its <code>.data</code></td><td>A Tensor contains a numpy array inside—unwrap it</td></tr>
+        <tr><td>A numpy array</td><td>Use it as-is</td><td>It's already what we want</td></tr>
+        <tr><td>Anything else</td><td>Convert with <code>np.array()</code></td><td>See below</td></tr>
+      </table>
+
+      <p>The "anything else" case uses <code>np.array()</code>, which is quite flexible:</p>
+      <pre><code>np.array([1, 2, 3])        # list → array([1, 2, 3])
+np.array(5)                # scalar → array(5)
+np.array((1, 2, 3))        # tuple → array([1, 2, 3])
+np.array([[1, 2], [3, 4]]) # nested list → 2D array</code></pre>
+      <p>So instead of checking for every possible type (list? tuple? int? float?), we just say "if it's not a Tensor or ndarray, hand it to numpy and let numpy figure it out." If someone passes something truly invalid (like a string), <code>np.array()</code> will either convert it to a string array or error—which is fine, because passing a string to a Tensor doesn't make sense anyway.</p>
+
+      <h3>Starter Code</h3>
+
+      <pre><code>import numpy as np
+
+class Tensor:
+    def __init__(self, data, *, device=None, dtype="float32", requires_grad=True):
+
+        # Step 1: Normalize the input to a numpy array
+        if isinstance(data, Tensor):
+            # data is a Tensor—extract the numpy array inside it
+            data = data.data
+        elif isinstance(data, np.ndarray):
+            # data is already a numpy array—nothing to do
+            data = data
+        else:
+            # data is a list, scalar, or something else—let numpy convert it
+            data = np.array(data)
+
+        # Step 2: Store it with the correct dtype
+        self.data = data.astype(dtype)
+
+        # Step 3: Initialize the other attributes
+        self.requires_grad = requires_grad
+        self.grad = None              # No gradient computed yet
+        self._device = device or "cpu"
+        self._op = None               # No operation created this (it's a "leaf" tensor)
+        self._inputs = []             # No input tensors (it's a "leaf" tensor)</code></pre>
+
+      <div class="hint">
+        <strong>Understanding <code>isinstance()</code></strong><br>
+        <code>isinstance(x, SomeType)</code> returns <code>True</code> if <code>x</code> is of type <code>SomeType</code>, otherwise <code>False</code>. For example:
+        <pre><code>isinstance([1, 2, 3], list)      # True
+isinstance([1, 2, 3], np.ndarray) # False
+isinstance(np.array([1,2,3]), np.ndarray)  # True</code></pre>
+      </div>
+
+      <h2>Exercise 2.2: Properties</h2>
+
+      <p>These are simple one-liners. They just expose information about the underlying numpy array.</p>
+
       <pre><code>@property
 def shape(self):
+    """Return dimensions like (3,) or (2, 4)"""
     return self.data.shape
 
 @property
-def dtype(self):
-    return self.data.dtype
-
-@property
 def ndim(self):
+    """Return number of dimensions (1 for vector, 2 for matrix, etc.)"""
     return self.data.ndim
 
 @property
 def size(self):
+    """Return total number of elements"""
     return self.data.size
 
 @property
 def device(self):
+    """Return device location (always 'cpu' for now)"""
     return self._device</code></pre>
 
-      <h3>Methods</h3>
+      <div class="hint">
+        <strong>What's <code>@property</code>?</strong><br>
+        It lets you access a method like an attribute—without parentheses. So instead of <code>t.shape()</code>, you can just write <code>t.shape</code>. It's syntactic sugar that makes the API cleaner.
+      </div>
 
-      <p><strong>numpy()</strong>: Extracts raw NumPy data, returning a copy disconnected from the computation graph.</p>
+      <h2>Exercise 2.3: <code>numpy()</code> and <code>detach()</code></h2>
 
-      <p><strong>detach()</strong>: Creates a new Tensor with identical data but <code>requires_grad=False</code>, excluding it from gradient computation during backpropagation.</p>
+      <h3>numpy()</h3>
 
-      <p>Both methods are essential for inspection and manipulation without affecting the computational graph.</p>
+      <p>Returns a plain numpy array, disconnected from the Tensor.</p>
 
-      <pre><code>def backward(self, out_grad=None):
-    # we will do this in next chapter!</code></pre>
+      <pre><code>def numpy(self):
+    """Return a copy of the data as a plain numpy array."""
+    return self.data.copy()</code></pre>
+
+      <p><strong>Why return a copy?</strong> So that modifying the returned array doesn't accidentally change the Tensor's data. They stay independent.</p>
+
+      <h3>detach()</h3>
+
+      <p>Returns a <em>new</em> Tensor with the same data, but with <code>requires_grad=False</code>.</p>
+
+      <pre><code>def detach(self):
+    """Create a new Tensor that won't track gradients."""
+    return Tensor(self.data, device=self._device, dtype=str(self.data.dtype), requires_grad=False)</code></pre>
+
+      <p><strong>Why would you use this?</strong> Sometimes you want to use a tensor's values without including it in the computation graph. For example, when logging values during training, you don't need gradients for that.</p>
+
+      <h2>String Representations</h2>
+
+      <p>Python has two ways to convert an object to a string:</p>
+
+      <pre><code>def __repr__(self):
+    """Detailed view (for debugging). Shows data and requires_grad."""
+    return f"Tensor({self.data}, requires_grad={self.requires_grad})"
+
+def __str__(self):
+    """Simple view (for printing). Just shows the data."""
+    return str(self.data)</code></pre>
+
+      <p><code>__repr__</code> is what you see when you type a variable name in the REPL. <code>__str__</code> is what <code>print()</code> uses.</p>
+
+      <h2>What's Next?</h2>
+
+      <p>Right now, our Tensor is just a fancy wrapper around a numpy array. The magic happens in Chapter 3, where we'll implement <code>backward()</code> and make it so that when you do math with Tensors, they automatically track their history for computing gradients.</p>
+
+      <pre><code>def backward(self):
+    # Coming in Chapter 3!
+    pass</code></pre>
 
       <div class="nav">
-        <a href="intro.html">← Introduction</a>
-        <a href="autograd.html">Next: Automatic Differentiation →</a>
+        <a href="intro.html">← 1. Introduction</a>
+        <a href="autograd.html">3. Automatic Differentiation →</a>
       </div>
 
       <div class="attribution">
-        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/chapter1.html">zekcrates/chapter1</a></p>
+        <p>Original: <a href="https://zekcrates.quarto.pub/deep-learning-library/chapter1.html">zekcrates/chapter1</a> (revised for clarity)</p>
       </div>
     </main>
   </div>
