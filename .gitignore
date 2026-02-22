@@ -26,5 +26,11 @@ dist/
 .coverage
 htmlcov/
 
+# Transcripts
+transcripts/
+
+# marimo session data
+__marimo__/
+
 # OS
 .DS_Store
