@@ -1,5 +1,7 @@
 import numpy as np
 
+NDArray = np.ndarray
+
 
 class Tensor:
     def __init__(self, input, *, device=None, dtype="float32", requires_grad=True):
@@ -93,3 +95,55 @@ class Tensor:
             >>> z = y * 2       # This operation won't be in graph
         """
         return Tensor(self.data, requires_grad=False)
+
+    def __add__(self, other):
+        """Addition: a + b"""
+        from .ops import Add
+
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+        return Add()(self, other)
+
+    def __radd__(self, other):
+        """Right addition: 5 + tensor"""
+        return self.__add__(other)
+
+    def __mul__(self, other):
+        """Multiplication: a * b"""
+        from .ops import Mul
+
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+        return Mul()(self, other)
+
+    def __pow__(self, other):
+        """Exponentiation: a ** b"""
+        from .ops import Pow
+
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+        return Pow()(self, other)
+
+    def __sub__(self, other):
+        """Subtraction: a - b"""
+        from .ops import Sub
+
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+        return Sub()(self, other)
+
+    def __truediv__(self, other):
+        """Division: a / b"""
+        from .ops import Div
+
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+        return Div()(self, other)
+
+    def __neg__(self, other):
+        """Negation: -a"""
+        from .ops import Negate
+
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+        return Negate()(self, other)

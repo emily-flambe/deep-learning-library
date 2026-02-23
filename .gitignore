@@ -32,5 +32,10 @@ transcripts/
 # marimo session data
 __marimo__/
 
+# Cloudflare/WASM export
+dist/
+index.js
+wrangler.jsonc
+
 # OS
 .DS_Store
