@@ -1,11 +1,24 @@
-.PHONY: dev deploy marimo
+NOTEBOOKS_DIR = notebooks/1_intro_to_gradient_descent
+MARIMO = .venv/bin/marimo
+
+.PHONY: dev marimo build deploy
 
 dev:
-	.venv/bin/marimo edit notebooks/micrograd.py
+	$(MARIMO) edit notebooks/micrograd.py
 
 marimo:
-	.venv/bin/marimo edit notebooks/1_intro_to_gradient_descent/demo.py
+	$(MARIMO) edit $(NOTEBOOKS_DIR)/demo.py
 
-deploy:
-	.venv/bin/marimo export html-wasm notebooks/micrograd.py -o dist --mode edit --include-cloudflare
-	CLOUDFLARE_ACCOUNT_ID=facf6619808dc039df729531bbb26d1d npx wrangler deploy
+build:
+	rm -rf dist && mkdir -p dist
+	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/0_intro.py                -o dist/0-intro                --mode run --show-code -f
+	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/1_derivatives.py          -o dist/1-derivatives          --mode run --show-code -f
+	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/2_manual_backpropagation.py -o dist/2-manual-backprop    --mode run --show-code -f
+	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/3_autograd_engine.py      -o dist/3-autograd-engine      --mode run --show-code -f
+	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/4_neural_network.py       -o dist/4-neural-network       --mode run --show-code -f
+	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/5_gradient_descent.py     -o dist/5-gradient-descent     --mode run --show-code -f
+	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/demo.py                   -o dist/demo                   --mode run --show-code -f
+	python3 scripts/gen_index.py
+
+deploy: build
+	npx wrangler deploy

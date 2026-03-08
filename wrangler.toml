@@ -1,10 +1,10 @@
-name = "micrograd-notebook"
+name = "grad"
 main = "index.js"
 compatibility_date = "2025-01-01"
 account_id = "facf6619808dc039df729531bbb26d1d"
 
 [[routes]]
-pattern = "micrograd.emilycogsdill.com"
+pattern = "grad.emilycogsdill.com"
 custom_domain = true
 
 [assets]
