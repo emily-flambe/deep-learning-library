@@ -5,9 +5,15 @@ app = marimo.App(width="medium")
 
 
 @app.cell
-def _():
+async def _():
+    import sys
     import marimo as mo
     import math
+    if sys.platform == "emscripten":
+        import pyodide.http, pathlib
+        resp = await pyodide.http.pyfetch("/utils.py")
+        pathlib.Path("/utils.py").write_text(await resp.string())
+        sys.path.insert(0, "/")
     from utils import Value, draw_dot
 
     return Value, draw_dot, math, mo

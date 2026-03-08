@@ -5,11 +5,20 @@ app = marimo.App(width="medium")
 
 
 @app.cell
-def _():
+async def _():
+    import sys
     import marimo as mo
     import math
-    import torch
+    if sys.platform == "emscripten":
+        import pyodide.http, pathlib
+        resp = await pyodide.http.pyfetch("/utils.py")
+        pathlib.Path("/utils.py").write_text(await resp.string())
+        sys.path.insert(0, "/")
     from utils import Value, draw_dot
+    try:
+        import torch
+    except ImportError:
+        torch = None
 
     return Value, draw_dot, math, mo, torch
 

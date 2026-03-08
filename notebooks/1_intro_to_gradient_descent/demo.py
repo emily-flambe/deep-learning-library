@@ -25,7 +25,11 @@ def _():
 
 
 @app.cell
-def _():
+async def _():
+    import sys
+    if sys.platform == "emscripten":
+        import micropip
+        await micropip.install("micrograd")
     from micrograd.engine import Value
     from micrograd.nn import Neuron, Layer, MLP
     return Layer, MLP, Neuron, Value

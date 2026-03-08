@@ -18,6 +18,7 @@ build:
 	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/4_neural_network.py       -o dist/4-neural-network       --mode run --show-code -f
 	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/5_gradient_descent.py     -o dist/5-gradient-descent     --mode run --show-code -f
 	$(MARIMO) export html-wasm $(NOTEBOOKS_DIR)/demo.py                   -o dist/demo                   --mode run --show-code -f
+	cp $(NOTEBOOKS_DIR)/utils.py dist/utils.py
 	python3 scripts/gen_index.py
 
 deploy: build

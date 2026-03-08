@@ -5,9 +5,15 @@ app = marimo.App(width="medium")
 
 
 @app.cell
-def _():
+async def _():
+    import sys
     import marimo as mo
     import random
+    if sys.platform == "emscripten":
+        import pyodide.http, pathlib
+        resp = await pyodide.http.pyfetch("/utils.py")
+        pathlib.Path("/utils.py").write_text(await resp.string())
+        sys.path.insert(0, "/")
     from utils import Value, Neuron, Layer, MLP, draw_dot
 
     return MLP, draw_dot, mo, random
