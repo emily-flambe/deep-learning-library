@@ -1,6 +1,7 @@
 import math
+import random
 
-import marimo as mo
+from graphviz import Digraph
 
 
 class Value:
@@ -131,38 +132,66 @@ def trace(root):
 
 
 def draw_dot(root):
-    """Renders a computation graph as a Mermaid diagram."""
+    """Renders a computation graph using Graphviz."""
     nodes, edges = trace(root)
-    lines = ["graph LR"]
-    leaf_ids = []
-    result_ids = []
-    op_ids = []
+    dot = Digraph(format="svg", graph_attr={"rankdir": "LR"})
 
     for n in nodes:
-        uid = f"n{id(n)}"
-        data_str = f"data: {n.data:.1f}<br>grad: {n.grad:.1f}"
-        label = f"{n.label}<br>{data_str}" if n.label else data_str
-        lines.append(f'    {uid}["{label}"]')
+        uid = str(id(n))
+        label = f"{{ {n.label} | data {n.data:.4f} | grad {n.grad:.4f} }}" if n.label else f"{{ data {n.data:.4f} | grad {n.grad:.4f} }}"
+        dot.node(uid, label=label, shape="record")
         if n._op:
-            op_uid = f"{uid}_op"
-            lines.append(f'    {op_uid}(("{n._op}"))')
-            lines.append(f"    {op_uid} --> {uid}")
-            result_ids.append(uid)
-            op_ids.append(op_uid)
-        else:
-            leaf_ids.append(uid)
+            dot.node(uid + n._op, label=n._op)
+            dot.edge(uid + n._op, uid)
 
     for n1, n2 in edges:
-        lines.append(f"    n{id(n1)} --> n{id(n2)}_op")
+        dot.edge(str(id(n1)), str(id(n2)) + n2._op)
 
-    lines.append("    classDef leaf fill:#dbeafe,stroke:#93c5fd,color:#1e3a5f")
-    lines.append("    classDef result fill:#f1f5f9,stroke:#94a3b8,color:#334155")
-    lines.append("    classDef op fill:#fef3c7,stroke:#f59e0b,color:#92400e")
-    for nid in leaf_ids:
-        lines.append(f"    class {nid} leaf")
-    for nid in result_ids:
-        lines.append(f"    class {nid} result")
-    for nid in op_ids:
-        lines.append(f"    class {nid} op")
+    return dot
 
-    return mo.mermaid("\n".join(lines))
+
+class Neuron:
+
+    def __init__(self, nin):
+        self.w = [Value(random.uniform(-1, 1)) for _ in range(nin)]
+        self.b = Value(random.uniform(-1, 1))
+
+    def __call__(self, x):
+        # w*x + b
+        act = sum((wi * xi for wi, xi in zip(self.w, x)), self.b)
+        out = act.tanh()
+        return out
+
+    def parameters(self):
+        return self.w + [self.b]
+
+
+class Layer:
+
+    def __init__(self, nin, nout):
+        self.neurons = [Neuron(nin) for _ in range(nout)]
+
+    def __call__(self, x):
+        outs = [n(x) for n in self.neurons]
+        return outs[0] if len(outs) == 1 else outs
+
+    def parameters(self):
+        return [p for neuron in self.neurons for p in neuron.parameters()]
+
+
+class MLP:
+
+    def __init__(self, nin, nouts):
+        """
+        nouts = list of output sizes
+        """
+        sz = [nin] + nouts
+        self.layers = [Layer(sz[i], sz[i + 1]) for i in range(len(nouts))]
+
+    def __call__(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+    def parameters(self):
+        return [p for layer in self.layers for p in layer.parameters()]

@@ -1,11 +1,18 @@
+[tool.setuptools.packages.find]
+include = ["micrograd*"]
+
 [project]
-name = "babygrad"
+name = "micrograd"
 version = "0.1.0"
-description = "Add your description here"
+description = "A tiny scalar-valued autograd engine and neural net library"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "graphviz>=0.21",
+    "marimo>=0.20.0",
+    "matplotlib>=3.0",
     "numpy>=2.4.2",
+    "scikit-learn>=1.0",
 ]
 
 [dependency-groups]

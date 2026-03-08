@@ -245,7 +245,7 @@ def _(loss):
 @app.cell
 def _(n):
     # We can inspect the value of the first weight in the first neuron of the first layer:
-    n.layers[0].neurons[0].w[0]
+    n.layers[0].neurons[0].w[0].data
     return
 
 
@@ -265,7 +265,56 @@ def _(draw_dot, loss):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # RIP
+    Now we want handy code to gather up all the parameters of the neural net so we can operate on them simultaneously.
+
+    Each one will be nudged a tiny amount based on the gradients.
+
+    For this, we need to add `parameters` to the Neuron, Layer, and MLP classes.
+
+    Neuron:
+
+    ```
+        def parameters(self):
+            return self.w + [self.b]
+    ```
+
+    Layer:
+
+    ```
+        def parameters(self):
+            return [p for neuron in self.neurons for p in neuron.parameters()]
+    ```
+
+    MLP:
+
+    ```
+        def parameters(self):
+            return [p for layer in self.layers for p in layer.parameters()]
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Now the neural network's `parameters` is big beautiful vector containing **all of the weights and biases of the neural net:**
+    """)
+    return
+
+
+@app.cell
+def _(n):
+    n.parameters()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Next up: gradient descent
+
+    We now have a neural network that computes a forward pass, calculates loss, and backpropagates gradients. In the next notebook, we'll use those gradients to actually *train* the network.
     """)
     return
 

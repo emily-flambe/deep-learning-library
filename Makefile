@@ -1,7 +1,10 @@
-.PHONY: dev deploy
+.PHONY: dev deploy marimo
 
 dev:
 	.venv/bin/marimo edit notebooks/micrograd.py
+
+marimo:
+	.venv/bin/marimo edit notebooks/demo.py
 
 deploy:
 	.venv/bin/marimo export html-wasm notebooks/micrograd.py -o dist --mode edit --include-cloudflare
