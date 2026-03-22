@@ -8,6 +8,7 @@ notebooks = [
     ("4-neural-network", "4. Neural Network",           "Building Neuron, Layer, and MLP classes"),
     ("5-gradient-descent","5. Gradient Descent",        "Training loop with gradient descent"),
     ("demo",             "Demo",                        "Binary classifier on the moons dataset"),
+    ("6-char-rnn",       "6. Character-Level RNN",      "Train an RNN from scratch to generate Shakespeare"),
 ]
 
 items = "\n".join(
