@@ -20,9 +20,10 @@ async def _():
         import urllib.request
         text = urllib.request.urlopen(shakespeare_url).read().decode("utf-8")
 
-    # Strip sonnet numbers (e.g. "                    42\n") to reduce noise
+    # Clean up: strip sonnet numbers, lowercase everything
     import re
     text = re.sub(r'\n\s+\d+\n', '\n\n', text)
+    text = text.lower()
 
     # Use first 100k chars to keep training fast
     text = text[:100_000]
@@ -59,6 +60,8 @@ def _(mo):
     ## Step 1: Character Vocabulary
 
     Instead of using a tokenizer to break text into words or subwords, we treat each unique character as its own token. This is the simplest possible approach — our "vocabulary" is just the set of characters that appear in the text.
+
+    We lowercase everything so the model doesn't waste capacity learning that 'T' and 't' are related.
     """)
     return
 
@@ -74,7 +77,7 @@ def _(text):
     ix_to_char = {i: ch for i, ch in enumerate(chars)}
 
     print(f"Vocabulary size: {vocab_size} unique characters")
-    print(f"Characters: {''.join(chars[:40])}...")
+    print(f"Characters: {''.join(chars)}")
     return char_to_ix, chars, ix_to_char, vocab_size
 
 
@@ -259,13 +262,15 @@ def _(mo):
 
     ## Step 4: Training
 
-    We train using **Adagrad** (adaptive gradient descent). For each chunk of 25 characters, we:
+    We train using **Adam** (Adaptive Moment Estimation) with a **cosine learning rate schedule**. For each chunk of 50 characters, we:
 
     1. Run the forward pass to compute loss
     2. Backpropagate gradients through the sequence
-    3. Update weights using the gradients
+    3. Update weights using Adam
 
-    The key insight: after each chunk, we carry over the hidden state to the next chunk. This lets the RNN "remember" context across chunks, even though we only backpropagate within each 25-character window. (This is called **truncated backpropagation through time**.)
+    **Why Adam over simpler optimizers like Adagrad?** Adagrad accumulates squared gradients forever, so the effective learning rate decays toward zero — the model stops learning after a while. Adam uses exponential moving averages instead, so it keeps learning throughout training. The cosine schedule smoothly reduces the learning rate to zero by the end, which stabilizes the final result.
+
+    The key insight: after each chunk, we carry over the hidden state to the next chunk. This lets the RNN "remember" context across chunks, even though we only backpropagate within each 50-character window. (This is called **truncated backpropagation through time**.)
     """)
     return
 
@@ -273,17 +278,21 @@ def _(mo):
 @app.cell
 def _(char_to_ix, hidden_size, ix_to_char, mo, np, rnn, text):
     # Training hyperparameters
-    seq_length = 25    # characters per training chunk
-    learning_rate = 1e-1
-    num_iterations = 20_000
+    seq_length = 50     # characters per training chunk
+    num_iterations = 10_000
+
+    # Adam optimizer hyperparameters
+    base_lr = 1e-3
+    beta1, beta2, adam_eps = 0.9, 0.999, 1e-8
 
     # Encode the full text as integers
     data = [char_to_ix[ch] for ch in text]
     data_size = len(data)
 
-    # Adagrad memory (sum of squared gradients)
+    # Adam state: first moment (momentum) and second moment (RMSprop-like)
     params = [rnn.Wxh, rnn.Whh, rnn.Why, rnn.bh, rnn.by]
-    memory = [np.zeros_like(p) for p in params]
+    m_adam = [np.zeros_like(p) for p in params]
+    v_adam = [np.zeros_like(p) for p in params]
 
     # Training loop
     smooth_loss = -np.log(1.0 / rnn.vocab_size) * seq_length  # initial loss estimate
@@ -305,14 +314,21 @@ def _(char_to_ix, hidden_size, ix_to_char, mo, np, rnn, text):
         loss, grads, h_prev = rnn.forward_and_loss(inputs, targets, h_prev)
         smooth_loss = smooth_loss * 0.999 + loss * 0.001
 
-        # Adagrad update
-        for param, grad, mem in zip(params, grads, memory):
-            mem += grad * grad
-            param -= learning_rate * grad / (np.sqrt(mem) + 1e-8)
+        # Cosine learning rate decay
+        lr = base_lr * 0.5 * (1 + np.cos(np.pi * iteration / num_iterations))
+
+        # Adam update
+        t_step = iteration + 1
+        for param, grad, m, v in zip(params, grads, m_adam, v_adam):
+            m[:] = beta1 * m + (1 - beta1) * grad          # update first moment
+            v[:] = beta2 * v + (1 - beta2) * grad * grad   # update second moment
+            m_hat = m / (1 - beta1 ** t_step)               # bias correction
+            v_hat = v / (1 - beta2 ** t_step)
+            param -= lr * m_hat / (np.sqrt(v_hat) + adam_eps)
 
         pointer += seq_length
 
-        if iteration % 2000 == 0:
+        if iteration % 1000 == 0:
             loss_history.append((iteration, smooth_loss))
 
     loss_history.append((num_iterations, smooth_loss))
@@ -321,8 +337,9 @@ def _(char_to_ix, hidden_size, ix_to_char, mo, np, rnn, text):
     **Training complete!**
 
     - Iterations: {num_iterations:,}
-    - Starting loss: {loss_history[0][1]:.1f}
-    - Final loss: {loss_history[-1][1]:.1f}
+    - Starting loss (per char): {loss_history[0][1] / seq_length:.2f}
+    - Final loss (per char): {loss_history[-1][1] / seq_length:.2f}
+    - Random baseline (per char): {np.log(rnn.vocab_size):.2f}
     """)
     return data, loss_history, seq_length
 
@@ -338,14 +355,16 @@ def _(mo):
 
 
 @app.cell
-def _(loss_history, mo):
+def _(loss_history, mo, seq_length):
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(8, 3))
     iters, losses = zip(*loss_history)
-    ax.plot(iters, losses, 'b-', linewidth=2)
+    # Plot per-character loss for interpretability
+    per_char_losses = [l / seq_length for l in losses]
+    ax.plot(iters, per_char_losses, 'b-', linewidth=2)
     ax.set_xlabel('Iteration')
-    ax.set_ylabel('Smooth Loss')
+    ax.set_ylabel('Loss per Character')
     ax.set_title('Training Loss')
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -414,7 +433,7 @@ def _(mo, trained_text, untrained_text):
     {untrained_text[:300]}
     ```
 
-    **After training** ({20_000} iterations):
+    **After training** (10,000 iterations):
     ```
     {trained_text[:300]}
     ```
