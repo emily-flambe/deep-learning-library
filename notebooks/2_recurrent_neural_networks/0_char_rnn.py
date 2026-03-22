@@ -20,10 +20,14 @@ async def _():
         import urllib.request
         text = urllib.request.urlopen(shakespeare_url).read().decode("utf-8")
 
+    # Strip sonnet numbers (e.g. "                    42\n") to reduce noise
+    import re
+    text = re.sub(r'\n\s+\d+\n', '\n\n', text)
+
     # Use first 100k chars to keep training fast
     text = text[:100_000]
     print(f"Loaded {len(text)} characters of Shakespeare")
-    return mo, np, text
+    return mo, np, re, text
 
 
 @app.cell(hide_code=True)
@@ -271,7 +275,7 @@ def _(char_to_ix, hidden_size, ix_to_char, mo, np, rnn, text):
     # Training hyperparameters
     seq_length = 25    # characters per training chunk
     learning_rate = 1e-1
-    num_iterations = 10_000
+    num_iterations = 20_000
 
     # Encode the full text as integers
     data = [char_to_ix[ch] for ch in text]
@@ -410,7 +414,7 @@ def _(mo, trained_text, untrained_text):
     {untrained_text[:300]}
     ```
 
-    **After training** ({10_000} iterations):
+    **After training** ({20_000} iterations):
     ```
     {trained_text[:300]}
     ```
