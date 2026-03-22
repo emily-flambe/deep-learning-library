@@ -240,8 +240,8 @@ def _(CharRNN, char_to_ix, hidden_size, ix_to_char, mo, np, seq_length, text, vo
     _smooth_loss = -np.log(1.0 / vocab_size) * seq_length
     _h_prev = np.zeros((hidden_size, 1))
     _ptr = 0
-    _loss_history = []
-    _snapshots = {}
+    adam_loss_history = []
+    adam_snapshots = {}
 
     for _i in range(_num_iters):
         if _ptr + seq_length + 1 >= _data_size:
@@ -266,22 +266,22 @@ def _(CharRNN, char_to_ix, hidden_size, ix_to_char, mo, np, seq_length, text, vo
         _ptr += seq_length
 
         if _i % 100 == 0:
-            _loss_history.append((_i, _smooth_loss / seq_length))
+            adam_loss_history.append((_i, _smooth_loss / seq_length))
 
         # Snapshot at each epoch
         if (_i + 1) % _iters_per_epoch == 0:
             _epoch = (_i + 1) // _iters_per_epoch
             _h0 = np.zeros((hidden_size, 1))
             _ixs = rnn.sample(_h0, char_to_ix['\n'], 300, temperature=0.8, rng=np.random.default_rng(42))
-            _snapshots[_epoch] = {
+            adam_snapshots[_epoch] = {
                 'text': ''.join(ix_to_char[ix] for ix in _ixs),
                 'loss': _smooth_loss / seq_length,
             }
 
-    _loss_history.append((_num_iters, _smooth_loss / seq_length))
+    adam_loss_history.append((_num_iters, _smooth_loss / seq_length))
 
     mo.md(f"**Training complete:** {_num_epochs} epochs ({_num_iters:,} iterations), final per-char loss: {_smooth_loss / seq_length:.3f}")
-    return _loss_history, _snapshots, rnn
+    return adam_loss_history, adam_snapshots, rnn
 
 
 @app.cell(hide_code=True)
@@ -293,11 +293,11 @@ def _(mo):
 
 
 @app.cell
-def _(_loss_history, mo):
+def _(adam_loss_history, mo):
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(10, 4))
-    _iters, _losses = zip(*_loss_history)
+    _iters, _losses = zip(*adam_loss_history)
     ax.plot(_iters, _losses, color='#4CAF50', linewidth=2)
     ax.set_xlabel('Iteration')
     ax.set_ylabel('Loss per Character')
@@ -319,14 +319,14 @@ def _(mo):
 
 
 @app.cell
-def _(_snapshots, mo, untrained_text):
+def _(adam_snapshots, mo, untrained_text):
     _sections = [f"""**Epoch 0** (random weights) — loss: 3.81
 ```
 {untrained_text[:250]}
 ```
 """]
-    for _epoch in sorted(_snapshots.keys()):
-        _s = _snapshots[_epoch]
+    for _epoch in sorted(adam_snapshots.keys()):
+        _s = adam_snapshots[_epoch]
         _sections.append(f"""**Epoch {_epoch}** — loss: {_s['loss']:.3f}
 ```
 {_s['text'][:250]}
@@ -456,11 +456,11 @@ def _(mo):
 
 
 @app.cell
-def _(_loss_history, adagrad_loss_hist, mo, plt):
+def _(adam_loss_history, adagrad_loss_hist, mo, plt):
     fig2, ax2 = plt.subplots(figsize=(10, 4))
     _ai, _al = zip(*adagrad_loss_hist)
     ax2.plot(_ai, _al, color='#FF9800', linewidth=2, label='Adagrad (lr=0.1)')
-    _ji, _jl = zip(*_loss_history)
+    _ji, _jl = zip(*adam_loss_history)
     ax2.plot(_ji, _jl, color='#4CAF50', linewidth=2, label='Adam (lr=1e-3, cosine)')
     ax2.set_xlabel('Iteration')
     ax2.set_ylabel('Loss per Character')
@@ -483,7 +483,7 @@ def _(mo):
 
 
 @app.cell
-def _(_snapshots, adagrad_snaps, mo):
+def _(adam_snapshots, adagrad_snaps, mo):
     mo.md(f"""
 **Adagrad** (10 epochs):
 ```
@@ -492,7 +492,7 @@ def _(_snapshots, adagrad_snaps, mo):
 
 **Adam** (10 epochs):
 ```
-{_snapshots[10]['text']}
+{adam_snapshots[10]['text']}
 ```
 
 Adam produces noticeably more coherent text — more real words, better structure — because it kept learning for the full 10 epochs while Adagrad effectively stopped after ~3.
